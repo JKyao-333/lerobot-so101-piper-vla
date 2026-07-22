@@ -1,0 +1,14 @@
+dataset:
+  root: /path/to/cloud/dataset
+  repo_id: local/replace_with_dataset_id
+policy:
+  type: act
+  device: cuda
+  push_to_hub: false
+training:
+  output_dir: /path/to/output/act_run
+  steps: null
+  batch_size: null
+  save_freq: null
+  wandb: false
+

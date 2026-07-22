@@ -1,0 +1,23 @@
+robot:
+  type: piper
+  can_interface: can0
+  bitrate: 1000000
+  include_gripper: true
+  use_degrees: false
+cameras:
+  front: {index_or_path: 0, width: 640, height: 480, fps: 30}
+  wrist: {index_or_path: 2, width: 640, height: 480, fps: 30}
+teleop:
+  type: so101_leader
+  port: /dev/ttyACM_X
+  id: so101_leader_example
+dataset:
+  repo_id: local/replace_with_dataset_id
+  root: /path/to/local/dataset
+  task: replace_with_your_task
+  num_episodes: 1
+  episode_time_s: 30
+  reset_time_s: 15
+  fps: 15
+  push_to_hub: false
+
