@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m compileall -q src scripts
+      - run: find scripts -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+      - run: python -m ruff check src scripts tests
+      - run: python -m pytest -q
+      - run: |
+          python - <<'PY'
+          from pathlib import Path
+          from robot_learning.config import load_yaml, validate_dual_act_config
+          for path in Path("configs").rglob("*.yaml"):
+              load_yaml(path)
+          validate_dual_act_config(load_yaml("configs/dual_act/dual_act.example.yaml"))
+          PY
+
+  repository-safety-check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e .
+      - run: python scripts/sanitize_logs.py --check-repository .
+      - run: python scripts/check_repository_files.py --root . --max-mb 20
+      - run: git diff --check
+
