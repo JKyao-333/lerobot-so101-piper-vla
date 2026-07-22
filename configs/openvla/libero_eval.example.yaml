@@ -1,0 +1,6 @@
+suite: spatial
+checkpoint: /path/to/openvla_checkpoint
+output_dir: /path/to/evaluation_output
+center_crop: true
+attention_backend: sdpa
+
