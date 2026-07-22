@@ -1,0 +1,5 @@
+# Install OpenVLA and LIBERO from their upstream repositories in a dedicated environment.
+# Exact CUDA/PyTorch/FlashAttention wheels are environment-specific; see docs/openvla_libero.md.
+packaging>=24
+ninja>=1.11
+

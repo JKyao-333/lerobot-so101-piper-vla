@@ -1,0 +1,3 @@
+lerobot[smolvla,libero,async]==0.6.1
+num2words>=0.5.14,<0.6
+

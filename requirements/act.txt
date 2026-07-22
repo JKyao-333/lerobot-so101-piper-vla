@@ -1,0 +1,4 @@
+lerobot[training]==0.6.1
+lerobot_robot_piper @ git+https://github.com/AgRoboticsResearch/lerobot_robot_piper.git@abf721d9e88ac822b18cb3413a75bb8cc0e3b34f
+python-can>=4.4,<5
+
