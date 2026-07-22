@@ -1,14 +1,15 @@
 dataset:
-  root: /path/to/cloud/dataset
-  repo_id: local/replace_with_dataset_id
+  root: /root/piper_record_test
+  repo_id: local/piper_record_test
 policy:
   type: act
   device: cuda
   push_to_hub: false
 training:
-  output_dir: /path/to/output/act_run
-  steps: null
-  batch_size: null
-  save_freq: null
+  output_dir: /root/outputs/train/act_piper_test
+  reference_checkpoint_step: 20000
+  reference_checkpoint: /root/outputs/train/act_piper_test/checkpoints/020000/pretrained_model
+  steps: 20000
+  batch_size: default_from_lerobot
+  save_freq: default_from_lerobot
   wandb: false
-

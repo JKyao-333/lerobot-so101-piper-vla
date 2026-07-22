@@ -16,6 +16,22 @@ PATTERN_FIXTURES = {
     Path("scripts/sanitize_logs.py"),
     Path("tests/test_log_sanitization.py"),
 }
+PUBLIC_REFERENCE_LITERALS = (
+    "/root/autodl-tmp/checkpoints/smolvla_piper_test/020000/pretrained_model",
+    "/root/autodl-tmp/huggingface/SmolVLM2-500M-Video-Instruct",
+    "/root/autodl-tmp/checkpoints/smolvla_piper_test",
+    "/root/autodl-tmp/huggingface/smolvla_base",
+    "/root/autodl-tmp/eval_logs/openvla",
+)
+
+
+def contains_unapproved_sensitive_text(text: str) -> bool:
+    """Ignore only exact, documented public paths while retaining the broad scanner."""
+
+    candidate = text
+    for literal in PUBLIC_REFERENCE_LITERALS:
+        candidate = candidate.replace(literal, "<PUBLIC_MANUAL_REFERENCE_PATH>")
+    return contains_sensitive_text(candidate)
 
 
 def repository_findings(root: Path) -> list[str]:
@@ -28,7 +44,7 @@ def repository_findings(root: Path) -> list[str]:
         if path.suffix.lower() not in TEXT_SUFFIXES and path.name not in {"Makefile", ".gitignore"}:
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
-        if contains_sensitive_text(text):
+        if contains_unapproved_sensitive_text(text):
             findings.append(str(path.relative_to(root)))
     return findings
 

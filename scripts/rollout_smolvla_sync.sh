@@ -5,12 +5,14 @@ source "$(dirname "$0")/_common.sh"
 execute=false
 [[ "${1:-}" == "--execute-robot" ]] && execute=true && shift
 (($# == 0)) || die "usage: $0 [--execute-robot]"
-for name in CHECKPOINT_PATH TASK_TEXT; do require_env "$name"; done
-require_cmd lerobot-rollout
-[[ -d "$CHECKPOINT_PATH" ]] || die "checkpoint directory not found"
+checkpoint_path="${SMOLVLA_SYNC_CHECKPOINT_PATH:-${CHECKPOINT_PATH:-}}"
+[[ -n "$checkpoint_path" ]] || die "SMOLVLA_SYNC_CHECKPOINT_PATH or CHECKPOINT_PATH is required"
+require_env TASK_TEXT
+require_cmd_for_execute "$execute" lerobot-rollout
+require_dir_for_execute "$execute" "$checkpoint_path" checkpoint
 front="${FRONT_CAMERA:-0}"; wrist="${WRIST_CAMERA:-2}"
 cameras="{front: {type: opencv, index_or_path: ${front}, width: 640, height: 480, fps: 30},wrist: {type: opencv, index_or_path: ${wrist}, width: 640, height: 480, fps: 30}}"
-cmd=(lerobot-rollout --strategy.type=base --policy.path="$CHECKPOINT_PATH"
+cmd=(lerobot-rollout --strategy.type=base --policy.path="$checkpoint_path"
   --robot.type=piper --robot.can_interface="${CAN_INTERFACE:-can0}" --robot.bitrate="${CAN_BITRATE:-1000000}"
   --robot.include_gripper=true --robot.use_degrees=false --robot.cameras="$cameras"
   --task="$TASK_TEXT" --duration="${DURATION_S:-20}")

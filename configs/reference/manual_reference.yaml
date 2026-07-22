@@ -1,0 +1,123 @@
+provenance:
+  kind: manual_example
+  hardware_measured: false
+  note: Trusted course-manual values for configuration and hardware-free rehearsal.
+  sources:
+    - SO101_Piper_ACT实验手册.pdf
+    - Piper双ACT长程任务实践手册.pdf
+    - ACT长程任务实践说明.pdf
+    - OpenVLA_LIBERO_可视化评测实验手册.pdf
+    - SmolVLA教学手册.pdf
+    - SmolVLA_LIBERO训练提升选做手册.pdf
+    - dual_act_piper_rollout.py
+
+scenario:
+  single_task: Put the banana on the plate.
+  long_horizon_task: Put the banana on the plate. Then put the block in the storage box and return to Home Pose.
+  skill_a: Put the banana on the plate.
+  skill_b: Put the block in the storage box and return to Home Pose.
+
+hardware:
+  can_interface: can0
+  can_bitrate: 1000000
+  include_gripper: true
+  use_degrees: false
+  leader_port: /dev/ttyACM0
+  leader_id: so101_leader_01
+  cameras:
+    front: {index_or_path: 0, width: 640, height: 480, fps: 30}
+    wrist: {index_or_path: 2, width: 640, height: 480, fps: 30}
+
+act:
+  recording:
+    dataset_repo_id: local/piper_record_test
+    dataset_root: $HOME/lerobot_work/data/piper_record_test
+    num_episodes: 50
+    episode_time_s: 30
+    reset_time_s: 15
+    dataset_fps: 15
+    encoder_threads: 2
+    rgb_crf: 20
+  training:
+    cloud_dataset_root: /root/piper_record_test
+    output_dir: /root/outputs/train/act_piper_test
+    device: cuda
+    reference_checkpoint_step: 20000
+    reference_checkpoint: /root/outputs/train/act_piper_test/checkpoints/020000/pretrained_model
+  rollout:
+    local_checkpoint: $HOME/lerobot_work/models/act_piper_test_20000/pretrained_model
+    duration_s: 20
+    episodes: 1
+
+dual_act:
+  control_hz: 15
+  total_timeout_s: 100
+  handoff_timeout_s: 30
+  startup_countdown_s: 5
+  skill_a_completion_s: 30
+  skill_a_timeout_s: 35
+  skill_b_completion_s: 30
+  skill_b_timeout_s: 35
+  action_dim: 7
+  joint_bounds: [-95, 95]
+  gripper_bounds: [0, 100]
+  max_joint_delta: 2
+  max_gripper_delta: 4
+
+openvla_libero:
+  center_crop: true
+  suites:
+    spatial: {task_suite: libero_spatial, checkpoint: openvla/openvla-7b-finetuned-libero-spatial}
+    object: {task_suite: libero_object, checkpoint: openvla/openvla-7b-finetuned-libero-object}
+    goal: {task_suite: libero_goal, checkpoint: openvla/openvla-7b-finetuned-libero-goal}
+    long: {task_suite: libero_10, checkpoint: openvla/openvla-7b-finetuned-libero-10}
+  optional_finetune:
+    batch_size: 8
+    learning_rate: 0.0005
+    lora: true
+    lora_rank: 32
+    lora_dropout: 0.05
+    quantization: false
+    max_steps: 200000
+    save_steps: 2500
+    grad_accumulation_steps: 2
+    shuffle_buffer_size: 100000
+
+smolvla_piper:
+  dataset_root: /root/piper_record_test
+  dataset_repo_id: piper_record_test
+  output_dir: /root/autodl-tmp/checkpoints/smolvla_piper_test
+  batch_size: 4
+  num_workers: 4
+  steps: 20000
+  save_freq: 5000
+  log_freq: 100
+  empty_cameras: 1
+  checkpoint: /root/autodl-tmp/checkpoints/smolvla_piper_test/020000/pretrained_model
+  rollout_duration_s: 20
+
+smolvla_async:
+  server_host: 127.0.0.1
+  server_port: 8080
+  control_fps: 15
+  actions_per_chunk: 50
+  nominal_chunk_duration_s: 3.3333333333
+  chunk_size_threshold: 0.5
+  aggregate_fn: weighted_average
+  cameras:
+    camera1: {index_or_path: /dev/video6, width: 640, height: 480, fps: 10}
+    camera2: {index_or_path: /dev/video5, width: 640, height: 480, fps: 10}
+
+smolvla_libero_optional:
+  dataset_repo_id: lerobot/libero
+  batch_size: 4
+  num_workers: 4
+  steps: 25000
+  save_freq: 5000
+  scheduler_warmup_steps: 1000
+  scheduler_decay_steps: 25000
+  scheduler_decay_lr: 0.0000025
+  eval_episodes_per_task: 10
+  eval_batch_size: 1
+  max_parallel_tasks: 1
+  use_async_envs: false

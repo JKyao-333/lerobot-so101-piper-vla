@@ -1,6 +1,7 @@
 # Result record
 
 - Date:
+- Value origin: manual_reference | measured
 - Repository commit:
 - Environment summary:
 - Model:
@@ -12,4 +13,3 @@
 - Notes:
 - Private artifact path:
 - Evidence reviewer:
-

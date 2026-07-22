@@ -12,3 +12,4 @@ In the verified LeRobot 0.6.1 protocol, the Policy Server is an empty service at
 
 The robot client script defaults to preview. Tunnel loss, server timeout, queue exhaustion, stale observations, or malformed actions must stop transmission and require operator intervention. SSH transport is not a safety-rated real-time fieldbus.
 
+The manual reference profile uses `/dev/video6` and `/dev/video5` at 640x480 and 10 FPS, a 15 Hz control loop, 50 actions per chunk, a 0.5 refill threshold, and `weighted_average`. Fifty actions at 15 Hz nominally cover 3.333 seconds. Device paths remain host-specific even when the other values are representative.

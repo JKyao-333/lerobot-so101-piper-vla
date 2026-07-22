@@ -1,4 +1,4 @@
-.PHONY: install-dev test lint validate check-secrets check-large-files
+.PHONY: install-dev test lint validate reference-profile check-secrets check-large-files
 
 PYTHON ?= python
 
@@ -15,9 +15,11 @@ lint:
 validate:
 	bash scripts/validate_repository.sh
 
+reference-profile:
+	$(PYTHON) scripts/validate_reference_profile.py --json
+
 check-secrets:
 	$(PYTHON) scripts/sanitize_logs.py --check-repository .
 
 check-large-files:
 	$(PYTHON) scripts/check_repository_files.py --root . --max-mb 20
-

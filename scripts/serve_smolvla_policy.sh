@@ -5,7 +5,7 @@ source "$(dirname "$0")/_common.sh"
 execute=false
 [[ "${1:-}" == "--execute" ]] && execute=true && shift
 (($# == 0)) || die "usage: $0 [--execute]"
-require_cmd python
+require_cmd_for_execute "$execute" python
 host="${POLICY_SERVER_HOST:-127.0.0.1}"
 port="${POLICY_SERVER_PORT:-8080}"
 fps="${CONTROL_FPS:-15}"
@@ -15,4 +15,3 @@ export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}" TRANSFORMERS_OFFLINE="${TRANSFORMER
 cmd=(python -m lerobot.async_inference.policy_server --host="$host" --port="$port" --fps="$fps" --obs_queue_timeout="$timeout")
 printf 'The verified LeRobot server loads checkpoint/device from the client handshake; it has no batch-size CLI field.\n'
 run_if_enabled "$execute" "${cmd[@]}"
-

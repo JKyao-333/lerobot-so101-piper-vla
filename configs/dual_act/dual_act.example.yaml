@@ -4,8 +4,16 @@ total_timeout_s: 100
 handoff_timeout_s: 30
 max_consecutive_errors: 1
 skills:
-  a: {checkpoint: /path/to/skill_a/pretrained_model, task: replace_with_skill_a, completion_s: 30, timeout_s: 35}
-  b: {checkpoint: /path/to/skill_b/pretrained_model, task: replace_with_skill_b, completion_s: 30, timeout_s: 35}
+  a:
+    checkpoint: $HOME/lerobot_work/models/act_banana_plate_20000/pretrained_model
+    task: Put the banana on the plate.
+    completion_s: 30
+    timeout_s: 35
+  b:
+    checkpoint: $HOME/lerobot_work/models/act_block_storage_20000/pretrained_model
+    task: Put the block in the storage box and return to Home Pose.
+    completion_s: 30
+    timeout_s: 35
 safety:
   action_dim: 7
   lower_bounds: [-95, -95, -95, -95, -95, -95, 0]

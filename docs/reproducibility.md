@@ -2,6 +2,7 @@
 
 For each private run, record:
 
+- value origin: `manual_reference` or `measured`;
 - repository commit and dirty/clean status;
 - upstream commits or package versions;
 - sanitized resolved configuration and command;
@@ -13,3 +14,4 @@ For each private run, record:
 
 Use `scripts/collect_env.sh` for a minimal sanitized environment summary and `results/result_template.md` for future evidence. Public metrics require the corresponding reviewable log; completed execution alone is not a quantitative result.
 
+`configs/reference/manual_reference.yaml` must retain `hardware_measured: false`. Promote values into a measured result record instead of rewriting their provenance.

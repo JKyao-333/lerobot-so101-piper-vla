@@ -48,6 +48,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--execute-robot", action="store_true", help="explicitly enable safe action transmission"
     )
+    parser.add_argument(
+        "--auto-confirm-mock",
+        action="store_true",
+        help="confirm the handoff non-interactively; accepted only without --hardware",
+    )
     return parser.parse_args()
 
 
@@ -55,6 +60,8 @@ def main() -> int:
     args = parse_args()
     if args.execute_robot and not args.hardware:
         raise SystemExit("--execute-robot requires --hardware")
+    if args.auto_confirm_mock and args.hardware:
+        raise SystemExit("--auto-confirm-mock is forbidden with --hardware")
     config = load_yaml(args.config)
     validate_dual_act_config(config)
     limits = ActionLimits(
@@ -116,9 +123,13 @@ def main() -> int:
                     stage_started = time.monotonic()
             elif machine.stage is Stage.WAIT_CONFIRM:
                 robot.stop()
-                answer = input(
-                    "Confirm skill B after inspecting the handoff (Enter=yes, q=abort): "
-                )
+                if args.auto_confirm_mock:
+                    print("mock handoff auto-confirmed (hardware execution is disabled)")
+                    answer = "yes"
+                else:
+                    answer = input(
+                        "Confirm skill B after inspecting the handoff (Enter=yes, q=abort): "
+                    )
                 if answer.strip().lower() in {"", "y", "yes", "n", "next"}:
                     machine.confirm_handoff()
                     stage_started = time.monotonic()

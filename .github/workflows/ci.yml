@@ -26,11 +26,19 @@ jobs:
       - run: |
           python - <<'PY'
           from pathlib import Path
-          from robot_learning.config import load_yaml, validate_dual_act_config
+          from robot_learning.config import (
+              load_yaml,
+              validate_dual_act_config,
+              validate_manual_reference_config,
+          )
           for path in Path("configs").rglob("*.yaml"):
               load_yaml(path)
           validate_dual_act_config(load_yaml("configs/dual_act/dual_act.example.yaml"))
+          validate_manual_reference_config(
+              load_yaml("configs/reference/manual_reference.yaml")
+          )
           PY
+      - run: python scripts/validate_reference_profile.py --json
 
   repository-safety-check:
     runs-on: ubuntu-22.04
@@ -43,4 +51,3 @@ jobs:
       - run: python scripts/sanitize_logs.py --check-repository .
       - run: python scripts/check_repository_files.py --root . --max-mb 20
       - run: git diff --check
-

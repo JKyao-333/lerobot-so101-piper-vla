@@ -3,8 +3,15 @@ ssh_tunnel: {host: example.invalid, port: 22, user: example_user, local_port: 80
 robot_client:
   server_url: 127.0.0.1:8080
   can_interface: can0
-  task: replace_with_your_task
+  bitrate: 1000000
+  task: Put the banana on the plate.
   control_hz: 15
+  actions_per_chunk: 50
+  nominal_chunk_duration_s: 3.3333333333
+  chunk_size_threshold: 0.5
+  aggregate_fn: weighted_average
   timeout_s: 5
   execute_robot: false
-
+  cameras:
+    camera1: {index_or_path: /dev/video6, width: 640, height: 480, fps: 10}
+    camera2: {index_or_path: /dev/video5, width: 640, height: 480, fps: 10}

@@ -15,7 +15,7 @@
 - SmolVLA Base 使用 Piper LeRobot 数据微调、本地同步 rollout，以及 Policy Server—SSH 隧道—Robot Client 异步链路。
 - 无机器人、无 GPU 的配置、状态机、安全过滤、超时和日志脱敏测试。
 
-以上能力表示流程已经完成运行验证；仓库没有收到可公开核验的原始日志，因此不发布成功率、训练步数、episode 数量、GPU 型号、耗时或 checkpoint 指标。
+以上能力表示工程流程已经完成离线验证。仓库现已纳入经用户确认可信的手册参考参数，包括 episode 数量、训练步数和 checkpoint 示例；它们明确标记为 `manual_example`，不是当前硬件实测结果。由于没有可公开核验的原始运行日志，仓库仍不发布成功率、GPU 型号、耗时或 checkpoint 效果指标。
 
 ## 系统组成与架构
 
@@ -43,7 +43,7 @@ flowchart LR
 1. `scripts/check_robot_environment.sh` 只检查运行条件，不收集用户、网络、USB 序列号或凭据。
 2. `scripts/setup_can.sh` 检查接口并预览 CAN 配置；传入 `--execute` 才修改接口。
 3. `scripts/record_piper_act.sh` 从环境变量组装 Piper、SO-101 leader、双相机、任务和数据集参数。
-4. `scripts/train_act_autodl.sh` 参数化训练目录、设备、步数、batch size、W&B 和保存频率；没有证据的数值不设默认值。
+4. `scripts/train_act_autodl.sh` 参数化训练目录、设备、步数、batch size、W&B 和保存频率；采用手册的 20,000-step checkpoint 作为参考，手册未固定的 ACT batch/save 参数继续交给对应 LeRobot 版本。
 5. `scripts/download_act_checkpoint.sh` 通过显式 SSH 环境变量回传检查点。
 6. `scripts/rollout_act_local.sh` 默认只预览；`--execute-robot` 才启动上游真机 rollout。
 
@@ -56,7 +56,9 @@ flowchart LR
 动作在唯一发送出口前检查维度、NaN/Inf、关节/夹爪绝对范围和单步变化。阶段/总任务超时、Ctrl+C、异常或无交互确认都会进入 `ABORTED`。默认 `EXECUTE_ROBOT = False`，并提供 `MockRobot` 测试。详见 [dual ACT long horizon](docs/dual_act_long_horizon.md)。
 
 ```bash
-python scripts/run_dual_act.py --config configs/dual_act/dual_act.example.yaml
+python scripts/run_dual_act.py \
+  --config configs/dual_act/dual_act.example.yaml \
+  --auto-confirm-mock
 ```
 
 该命令仅运行 MockRobot。连接硬件需显式增加 `--hardware`；真正发送动作还需同时增加 `--execute-robot`。
@@ -93,7 +95,9 @@ make test
 make validate
 ```
 
-随后按目标流程安装对应上游依赖，并在本地 `.env` 中填写设备、任务、数据集和 checkpoint。`.env` 不得提交。所有脚本的第一次运行应保持预览或 dry-run。
+无硬件时先运行 `python scripts/validate_reference_profile.py --json`，再用 MockRobot 和 shell dry-run 检查完整参数链。参考值、来源和边界见 [manual reference profile](docs/manual_reference_profile.md)。
+
+随后按目标流程安装对应上游依赖，并在本地 `.env` 中填写与目标主机不同的设备、任务、数据集和 checkpoint。`.env` 不得提交。所有脚本的第一次运行应保持预览或 dry-run；预览模式不要求已经安装 LeRobot 或存在模型目录。
 
 ## 测试与 CI
 
@@ -106,4 +110,3 @@ make validate
 ## 上游项目与许可
 
 运行链路依赖 LeRobot、ACT、OpenVLA、LIBERO、SmolVLA、`lerobot_robot_piper` 和 Piper SDK；它们各自遵循自己的许可证。仓库中的 MIT License 只覆盖本仓库原创的编排、安全、配置、测试和脚本封装，不会重新许可任何上游源码。已核对版本与来源见 [upstream versions](docs/upstream_versions.md) 和 [references](docs/references.md)。
-

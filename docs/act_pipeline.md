@@ -6,5 +6,4 @@ The validated workflow is:
 
 All identity-bearing values are runtime inputs. Dataset quality guidance from the practical material is retained as engineering rules: record one task per dataset, keep cameras and initial conditions stable, reject failed/colliding trajectories, and verify a short recording before a full collection.
 
-Training steps, batch size, save frequency, hardware model, and checkpoint selection are deliberately unset in public examples unless a future sanitized log proves them. A local run should capture its resolved command, dependency versions, output path, and selected checkpoint in a private experiment record.
-
+The trusted manual profile uses 50 demonstrations and a 20,000-step checkpoint as reference values. The ACT manuals do not pin batch size or save cadence across LeRobot versions, so those two settings remain version-controlled defaults rather than invented numbers. Reference values are configuration inputs, not measured convergence evidence. A real run should capture its resolved command, dependency versions, output path, selected checkpoint, and sanitized log in an experiment record.

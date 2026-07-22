@@ -24,15 +24,18 @@ esac
 [[ "$center_crop" == "true" || "$center_crop" == "false" ]] || die "--center-crop must be true or false"
 require_env OPENVLA_ROOT
 require_env LIBERO_ROOT
-[[ -d "$OPENVLA_ROOT" ]] || die "OPENVLA_ROOT is not a directory"
-[[ -d "$LIBERO_ROOT" ]] || die "LIBERO_ROOT is not a directory"
-[[ -e "$checkpoint" ]] || die "checkpoint does not exist"
-require_cmd python
-
-if [[ "${MUJOCO_GL:-}" != "egl" && -z "${DISPLAY:-}" ]]; then
-  die "headless evaluation requires MUJOCO_GL=egl"
+if [[ "$execute" == "true" ]]; then
+  [[ -d "$OPENVLA_ROOT" ]] || die "OPENVLA_ROOT is not a directory"
+  [[ -d "$LIBERO_ROOT" ]] || die "LIBERO_ROOT is not a directory"
+  if [[ ! -e "$checkpoint" && ! "$checkpoint" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+    die "checkpoint must be a local path or Hugging Face repository id"
+  fi
+  require_cmd python
+  if [[ "${MUJOCO_GL:-}" != "egl" && -z "${DISPLAY:-}" ]]; then
+    die "headless evaluation requires MUJOCO_GL=egl"
+  fi
+  python -c 'import libero, mujoco' >/dev/null || die "LIBERO or MuJoCo cannot be imported"
 fi
-python -c 'import libero, mujoco' >/dev/null || die "LIBERO or MuJoCo cannot be imported"
 
 attention_backend="${ATTENTION_BACKEND:-sdpa}"
 printf 'attention backend: %s (FlashAttention is optional; fallback is logged)\n' "$attention_backend"
@@ -55,4 +58,3 @@ if [[ "$execute" == "true" ]]; then
 else
   printf 'dry-run: no simulation was started and no metric was generated.\n'
 fi
-
