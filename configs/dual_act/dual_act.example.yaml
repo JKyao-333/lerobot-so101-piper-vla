@@ -1,0 +1,13 @@
+execute_robot: false
+control_hz: 15
+total_timeout_s: 100
+handoff_timeout_s: 30
+max_consecutive_errors: 1
+skills:
+  a: {checkpoint: /path/to/skill_a/pretrained_model, task: replace_with_skill_a, completion_s: 30, timeout_s: 35}
+  b: {checkpoint: /path/to/skill_b/pretrained_model, task: replace_with_skill_b, completion_s: 30, timeout_s: 35}
+safety:
+  action_dim: 7
+  lower_bounds: [-95, -95, -95, -95, -95, -95, 0]
+  upper_bounds: [95, 95, 95, 95, 95, 95, 100]
+  max_step_delta: [2, 2, 2, 2, 2, 2, 4]
