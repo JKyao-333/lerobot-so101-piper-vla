@@ -1,0 +1,16 @@
+base_model: /path/to/smolvla_base
+smolvlm_path: /path/to/smolvlm
+dataset_root: /path/to/piper_lerobot_dataset
+dataset_repo_id: local/replace_with_dataset_id
+output_dir: /path/to/unique_training_output
+batch_size: null
+learning_rate: null
+max_steps: null
+save_steps: null
+lora: false
+lora_rank: null
+quantization: false
+device: cuda
+offline: true
+resume_checkpoint: null
+

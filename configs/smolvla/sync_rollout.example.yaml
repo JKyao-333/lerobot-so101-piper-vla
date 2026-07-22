@@ -1,0 +1,10 @@
+checkpoint: /path/to/pretrained_model
+task: replace_with_your_task
+can_interface: can0
+front_camera: 0
+wrist_camera: 2
+duration_s: 20
+episodes: 1
+execute_robot: false
+log_file: logs/smolvla_sync.log
+

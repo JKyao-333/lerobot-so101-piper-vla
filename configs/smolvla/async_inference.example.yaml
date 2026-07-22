@@ -1,0 +1,10 @@
+policy_server: {host: 127.0.0.1, port: 8080, device: cuda, fps: 15, timeout_s: 5}
+ssh_tunnel: {host: example.invalid, port: 22, user: example_user, local_port: 8080, remote_port: 8080}
+robot_client:
+  server_url: 127.0.0.1:8080
+  can_interface: can0
+  task: replace_with_your_task
+  control_hz: 15
+  timeout_s: 5
+  execute_robot: false
+
