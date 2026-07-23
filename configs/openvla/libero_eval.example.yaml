@@ -2,7 +2,6 @@ suite: spatial
 checkpoint: openvla/openvla-7b-finetuned-libero-spatial
 output_dir: /root/autodl-tmp/eval_logs/openvla
 center_crop: true
-attention_backend: sdpa
 suites:
   spatial: {task_suite: libero_spatial, checkpoint: openvla/openvla-7b-finetuned-libero-spatial}
   object: {task_suite: libero_object, checkpoint: openvla/openvla-7b-finetuned-libero-object}
