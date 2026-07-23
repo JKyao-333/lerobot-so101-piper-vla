@@ -45,6 +45,7 @@ def test_openvla_rejects_unknown_suite(tmp_path: Path) -> None:
 
 @pytest.mark.skipif(not POSIX_BASH, reason="requires POSIX bash")
 def test_openvla_wrapper_uses_only_confirmed_arguments(tmp_path: Path) -> None:
+    output_dir = tmp_path / "openvla-preview"
     result = run_bash(
         "scripts/eval_openvla_libero.sh",
         "--suite",
@@ -52,7 +53,7 @@ def test_openvla_wrapper_uses_only_confirmed_arguments(tmp_path: Path) -> None:
         "--checkpoint",
         "openvla/openvla-7b-finetuned-libero-spatial",
         "--output-dir",
-        str(tmp_path),
+        str(output_dir),
         env={"OPENVLA_ROOT": "/opt/example/openvla", "LIBERO_ROOT": "/opt/example/libero"},
     )
     assert result.returncode == 0, result.stderr
@@ -62,7 +63,7 @@ def test_openvla_wrapper_uses_only_confirmed_arguments(tmp_path: Path) -> None:
     assert "--center_crop" in result.stdout
     assert "--attention" not in result.stdout
     assert "--output-dir" not in result.stdout
-    assert not tmp_path.exists()
+    assert not output_dir.exists()
 
 
 def test_openvla_does_not_claim_unwired_attention_backend() -> None:
