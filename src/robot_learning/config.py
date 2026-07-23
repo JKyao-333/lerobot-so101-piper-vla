@@ -124,7 +124,7 @@ def validate_dual_act_config(config: dict[str, Any]) -> None:
 
 
 def validate_manual_reference_config(config: dict[str, Any]) -> None:
-    """Validate the trusted, hardware-free reference profile derived from the manuals."""
+    """Validate the hardware-free manual example profile derived from the manuals."""
 
     required = (
         "provenance.kind",

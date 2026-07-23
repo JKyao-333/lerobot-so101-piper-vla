@@ -15,7 +15,7 @@
 - SmolVLA Base 使用 Piper LeRobot 数据微调、本地同步 rollout，以及 Policy Server—SSH 隧道—Robot Client 异步链路。
 - 无机器人、无 GPU 的配置、状态机、安全过滤、超时和日志脱敏测试。
 
-以上能力表示工程流程已经完成离线验证。仓库现已纳入经用户确认可信的手册参考参数，包括 episode 数量、训练步数和 checkpoint 示例；它们明确标记为 `manual_example`，不是当前硬件实测结果。由于没有可公开核验的原始运行日志，仓库仍不发布成功率、GPU 型号、耗时或 checkpoint 效果指标。
+以上能力表示工程流程已经完成离线验证。仓库现已纳入课程手册参考参数，包括 episode 数量、训练步数和 checkpoint 示例；它们明确标记为 `manual_example`，仅用于配置与流程参考，不是当前硬件实测结果。由于没有可公开核验的原始运行日志，仓库仍不发布成功率、GPU 型号、耗时或 checkpoint 效果指标。
 
 ## 系统组成与架构
 
@@ -53,7 +53,7 @@ flowchart LR
 
 两个 `SkillRuntime` 分别保存 policy、preprocess、postprocess、checkpoint 和任务文本。每轮开始重置两个策略；技能 A 完成后只进入人工确认态，确认后再次调用技能 B 的 `reset()`。代码不访问 `_action_queue` 等上游私有变量。
 
-动作在唯一发送出口前检查维度、NaN/Inf、关节/夹爪绝对范围和单步变化。阶段/总任务超时、Ctrl+C、异常或无交互确认都会进入 `ABORTED`。默认 `EXECUTE_ROBOT = False`，并提供 `MockRobot` 测试。详见 [dual ACT long horizon](docs/dual_act_long_horizon.md)。
+动作在唯一发送出口前检查维度、NaN/Inf、关节/夹爪绝对范围和单步变化；第一次非法动作立即进入 `ABORTED`，不会被忽略或累计。默认 `EXECUTE_ROBOT = False`，并提供 `MockRobot` 测试。详见 [dual ACT long horizon](docs/dual_act_long_horizon.md)。
 
 ```bash
 python scripts/run_dual_act.py \
@@ -61,7 +61,9 @@ python scripts/run_dual_act.py \
   --auto-confirm-mock
 ```
 
-该命令仅运行 MockRobot。连接硬件需显式增加 `--hardware`；真正发送动作还需同时增加 `--execute-robot`。
+该命令仅运行 MockRobot。连接硬件需显式增加 `--hardware`；真正发送动作必须同时满足配置 `allow_robot_execution=true` 和命令行 `--execute-robot`。任一授权缺失都不会发送动作，且配置拒绝发生在 adapter 连接和模型加载之前。
+
+`use_degrees=false` 表示关节使用约 `[-100, 100]` 的归一化位置、夹爪使用 `[0, 100]` 的归一化范围，不是弧度。双 ACT 的 `[-95, 95]` 是手册提供的保守归一化动作边界，不是机械臂硬件角度限位。
 
 ## OpenVLA-LIBERO 四套件评测
 
@@ -74,7 +76,7 @@ python scripts/run_dual_act.py \
 | `goal` | `libero_goal` |
 | `long` | `libero_10` |
 
-脚本检查 OpenVLA、LIBERO、MuJoCo/EGL 和 checkpoint，按时间戳创建独立输出目录，并保存评测日志和视频索引。FlashAttention 不可用时可记录 SDPA fallback。这里是 LIBERO MuJoCo 仿真评测，不是 OpenVLA 的 Piper 真机部署。详见 [OpenVLA-LIBERO](docs/openvla_libero.md)。
+执行模式检查 OpenVLA、LIBERO、MuJoCo/EGL 和 checkpoint，并在 wrapper 的时间戳目录中捕获控制台日志。当前没有可核验的 OpenVLA 源码 checkout，因此 wrapper 只传递手册确认的四个上游参数，不声明 attention backend、fallback 或上游视频目录；上游产物位置由实际安装 revision 决定。这里是 LIBERO MuJoCo 仿真评测，不是 OpenVLA 的 Piper 真机部署。详见 [OpenVLA-LIBERO](docs/openvla_libero.md)。
 
 ## SmolVLA：Piper 微调与部署
 
@@ -97,11 +99,11 @@ make validate
 
 无硬件时先运行 `python scripts/validate_reference_profile.py --json`，再用 MockRobot 和 shell dry-run 检查完整参数链。参考值、来源和边界见 [manual reference profile](docs/manual_reference_profile.md)。
 
-随后按目标流程安装对应上游依赖，并在本地 `.env` 中填写与目标主机不同的设备、任务、数据集和 checkpoint。`.env` 不得提交。所有脚本的第一次运行应保持预览或 dry-run；预览模式不要求已经安装 LeRobot 或存在模型目录。
+随后按目标流程安装对应上游依赖，并在本地 `.env` 中逐项确认设备端口、相机编号、CAN 接口与 bitrate、任务文本、数据集路径、模型/checkpoint 路径、网络端点、云端目录和上游版本。`.env` 不得提交。所有脚本的第一次运行应保持预览或 dry-run；预览模式不要求已经安装 LeRobot 或存在模型目录。
 
 ## 测试与 CI
 
-`make test` 和 `make validate` 不连接 Piper、不创建 can0、不下载模型、不运行 GPU 训练或 MuJoCo 大规模评测。GitHub Actions 包含 Python/Shell 语法、pytest、配置模板、secret pattern、大文件/权重/视频检查和 `git diff --check`。
+`make test` 和 `make validate` 不连接 Piper、不创建 can0、不下载模型、不运行 GPU 训练或 MuJoCo 大规模评测。GitHub Actions 包含 Python/Shell 语法、pytest、配置模板、secret pattern、大文件/权重/视频检查、`git diff --check`，并逐个执行所有 shell workflow 的无硬件预演。
 
 ## 安全边界
 

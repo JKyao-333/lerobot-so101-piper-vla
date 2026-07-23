@@ -1,4 +1,5 @@
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
@@ -48,3 +49,19 @@ def test_manual_profile_cannot_claim_measured_results(forbidden_key: str) -> Non
     config["results"] = {forbidden_key: "not allowed"}
     with pytest.raises(ConfigError, match="cannot claim measured results"):
         validate_manual_reference_config(config)
+
+
+def test_use_degrees_false_documented_as_normalized() -> None:
+    root = Path(__file__).resolve().parents[1]
+    documents = [
+        root / "README.md",
+        root / "docs/manual_reference_profile.md",
+        root / "docs/safety.md",
+        root / "docs/dual_act_long_horizon.md",
+    ]
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in documents)
+    assert "use_degrees=false" in combined
+    assert "normalized" in combined
+    assert "归一化" in combined
+    assert "radians/normalized mode" not in combined
+    assert "not a hardware joint-angle limit" in combined

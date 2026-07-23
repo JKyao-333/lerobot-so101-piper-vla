@@ -1,7 +1,7 @@
 provenance:
   kind: manual_example
   hardware_measured: false
-  note: Trusted course-manual values for configuration and hardware-free rehearsal.
+  note: Course-manual reference values for configuration validation and hardware-free rehearsal; not measured results.
   sources:
     - SO101_Piper_ACT实验手册.pdf
     - Piper双ACT长程任务实践手册.pdf

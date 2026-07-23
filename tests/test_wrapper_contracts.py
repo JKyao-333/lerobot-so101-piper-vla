@@ -44,7 +44,7 @@ def test_openvla_rejects_unknown_suite(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(not POSIX_BASH, reason="requires POSIX bash")
-def test_openvla_dry_run_uses_only_confirmed_arguments(tmp_path: Path) -> None:
+def test_openvla_wrapper_uses_only_confirmed_arguments(tmp_path: Path) -> None:
     result = run_bash(
         "scripts/eval_openvla_libero.sh",
         "--suite",
@@ -69,6 +69,12 @@ def test_openvla_does_not_claim_unwired_attention_backend() -> None:
     script = (ROOT / "scripts/eval_openvla_libero.sh").read_text(encoding="utf-8")
     assert "ATTENTION_BACKEND" not in script
     assert "rollout_videos.txt" not in script
+
+
+def test_openvla_output_claim_matches_wrapper_behavior() -> None:
+    documentation = (ROOT / "docs/openvla_libero.md").read_text(encoding="utf-8")
+    assert "controls only its captured console log" in documentation
+    assert "artifact locations depend on the installed revision" in documentation
 
 
 def test_async_timeout_config_matches_generated_command() -> None:

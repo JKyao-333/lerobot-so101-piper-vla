@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and summarize the trusted manual-reference profile without hardware."""
+"""Validate and summarize the manual example profile without hardware."""
 
 from __future__ import annotations
 

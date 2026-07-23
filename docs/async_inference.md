@@ -12,4 +12,4 @@ In the inspected LeRobot 0.6.1 commit `e40b58a8`, the Policy Server is an empty 
 
 The robot client script defaults to preview. The Policy Server's `obs_queue_timeout` controls how long the server waits for an observation; it is not a robot-client stop guarantee. The current wrapper adds no client-side timeout protection. Tunnel loss, server failure, queue exhaustion, stale observations, or malformed actions require direct operator intervention. SSH transport is not a safety-rated real-time fieldbus.
 
-The manual reference profile uses `/dev/video6` and `/dev/video5` at 640x480 and 10 FPS, a 15 Hz control loop, 50 actions per chunk, a 0.5 refill threshold, and `weighted_average`. Fifty actions at 15 Hz nominally cover 3.333 seconds. Device paths remain host-specific even when the other values are representative.
+The manual example profile uses `/dev/video6` and `/dev/video5` at 640x480 and 10 FPS, a 15 Hz control loop, 50 actions per chunk, a 0.5 refill threshold, and `weighted_average`. Fifty actions at 15 Hz nominally cover 3.333 seconds. Every device path, network endpoint, checkpoint, task, and version must be confirmed locally before execution.
