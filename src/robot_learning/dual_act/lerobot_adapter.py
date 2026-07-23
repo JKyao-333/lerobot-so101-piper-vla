@@ -6,6 +6,7 @@ No upstream source is copied here. Imports occur only when hardware mode is requ
 from __future__ import annotations
 
 import logging
+import math
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -71,25 +72,35 @@ class LerobotPiperAdapter:
         self.action_names: tuple[str, ...] = ()
         self._control_connected = False
         self._last_safe_action: dict[str, float] | None = None
+        self._disconnect_completed = False
 
     def connect(self) -> None:
+        self._disconnect_completed = False
         try:
             self._robot.connect()
-        finally:
             self._control_connected = self._pinned_piper_control_interface() is not None
-        actions = self._feature_builder(self._robot.action_features, "action")
-        observations = self._feature_builder(self._robot.observation_features, "observation")
-        self.dataset_features = {**actions, **observations}
-        names = self.dataset_features.get("action", {}).get("names")
-        if not names:
-            raise RuntimeError("Piper action features do not expose ordered action names")
-        self.action_names = tuple(str(name) for name in names)
+            actions = self._feature_builder(self._robot.action_features, "action")
+            observations = self._feature_builder(self._robot.observation_features, "observation")
+            self.dataset_features = {**actions, **observations}
+            names = self.dataset_features.get("action", {}).get("names")
+            if not names:
+                raise RuntimeError("Piper action features do not expose ordered action names")
+            self.action_names = tuple(str(name) for name in names)
+        except Exception:
+            try:
+                self.disconnect()
+            except Exception:
+                logger.exception("cleanup after partial Piper connection failed")
+            raise
 
     def disconnect(self) -> None:
+        if getattr(self, "_disconnect_completed", False):
+            return
         try:
             self._robot.disconnect()
         finally:
             self._control_connected = False
+            self._disconnect_completed = True
 
     def get_observation(self) -> dict[str, Any]:
         return self._robot.get_observation()
@@ -115,8 +126,8 @@ class LerobotPiperAdapter:
             return None
         return interface
 
-    def _best_effort_hold_via_pinned_piper_adapter(self) -> bool:
-        """Hold the latest safe/current pose through the pinned low-level interface."""
+    def _best_effort_hold_current_pose_via_pinned_piper_adapter(self) -> bool:
+        """Hold measured pose, falling back to the last command for pinned Piper only."""
 
         interface = self._pinned_piper_control_interface()
         if interface is None:
@@ -124,24 +135,39 @@ class LerobotPiperAdapter:
 
         config = self._robot.config
         joint_names = list(config.joint_names)
-        status = interface.get_status_deg()
-        joints_hw_deg: list[float | None] = [
-            float(status[f"joint_{index}.pos"]) if f"joint_{index}.pos" in status else None
-            for index in range(1, len(joint_names) + 1)
-        ]
-        gripper_mm = (
-            float(status["gripper.pos"])
-            if config.include_gripper and "gripper.pos" in status
-            else None
+        try:
+            status = interface.get_status_deg()
+        except Exception:
+            logger.warning("unable to read current Piper pose; considering command fallback")
+            status = {}
+        measured_joints = [status.get(f"joint_{index}.pos") for index in range(1, 7)]
+        measured_gripper = status.get("gripper.pos") if config.include_gripper else None
+        measurement_complete = len(joint_names) == 6 and all(
+            isinstance(value, (int, float)) and math.isfinite(float(value))
+            for value in measured_joints
         )
+        if config.include_gripper:
+            measurement_complete = measurement_complete and isinstance(
+                measured_gripper, (int, float)
+            ) and math.isfinite(float(measured_gripper))
+        if measurement_complete:
+            logger.info("holding measured current pose")
+            interface.set_joint_positions_deg(
+                [float(value) for value in measured_joints],
+                float(measured_gripper) if measured_gripper is not None else None,
+            )
+            return True
 
         if self._last_safe_action:
+            logger.warning("falling back to last safe command for Piper hold")
             min_pos = getattr(interface, "min_pos", None)
             max_pos = getattr(interface, "max_pos", None)
             if not isinstance(min_pos, list) or not isinstance(max_pos, list):
                 raise RuntimeError("pinned Piper limits are unavailable")
             aliases = dict(config.joint_aliases)
             joint_index = {name: index for index, name in enumerate(joint_names)}
+            joints_hw_deg: list[float | None] = [None] * len(joint_names)
+            gripper_mm: float | None = None
             for key, raw_value in self._last_safe_action.items():
                 if key == "gripper.pos":
                     if config.include_gripper:
@@ -173,12 +199,15 @@ class LerobotPiperAdapter:
                     min(max_pos[index], oriented_deg * config.joint_signs[index]),
                 )
 
-        if any(value is None for value in joints_hw_deg):
-            raise RuntimeError("cannot construct a complete Piper hold command")
-        interface.set_joint_positions_deg(
-            [float(value) for value in joints_hw_deg if value is not None], gripper_mm
-        )
-        return True
+            fallback_complete = not any(value is None for value in joints_hw_deg)
+            if config.include_gripper:
+                fallback_complete = fallback_complete and gripper_mm is not None
+            if fallback_complete:
+                interface.set_joint_positions_deg(
+                    [float(value) for value in joints_hw_deg if value is not None], gripper_mm
+                )
+                return True
+        raise RuntimeError("unable to construct hold command from measurement or fallback")
 
     def hold_current_pose_best_effort(self) -> bool:
         """Best-effort position hold; this is not a physical emergency stop."""
@@ -189,7 +218,7 @@ class LerobotPiperAdapter:
             logger.error("cannot hold Piper pose: control channel is not connected")
             return False
         try:
-            return self._best_effort_hold_via_pinned_piper_adapter()
+            return self._best_effort_hold_current_pose_via_pinned_piper_adapter()
         except Exception:
             logger.exception("best-effort Piper hold failed")
             return False

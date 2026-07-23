@@ -55,7 +55,7 @@ class DualActRollout:
         self.execute_robot = execute_robot
         self.previous_action: tuple[float, ...] | None = None
 
-    def _hold_best_effort(self, context: str) -> bool:
+    def hold_best_effort(self, context: str) -> bool:
         try:
             result = self.robot.stop()
         except Exception:
@@ -68,7 +68,7 @@ class DualActRollout:
 
     def step(self) -> tuple[float, ...] | None:
         if self.machine.check_timeouts():
-            self._hold_best_effort("timeout")
+            self.hold_best_effort("timeout")
             return None
         skill = self.machine.active_skill()
         if skill is None:
@@ -78,7 +78,7 @@ class DualActRollout:
             safe = self.action_filter.apply(proposed, self.previous_action)
         except Exception as exc:
             self.machine.abort(f"action failure: {exc}")
-            self._hold_best_effort("action failure")
+            self.hold_best_effort("action failure")
             raise
         self.previous_action = safe
         if self.execute_robot:
@@ -87,7 +87,7 @@ class DualActRollout:
 
     def stop(self, reason: str = "operator stop") -> None:
         self.machine.abort(reason)
-        self._hold_best_effort(reason)
+        self.hold_best_effort(reason)
 
     @property
     def safe_state(self) -> bool:
