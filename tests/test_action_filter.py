@@ -32,3 +32,8 @@ def test_step_delta_is_limited_after_absolute_clip(action_filter: ActionFilter) 
         54.0,
     )
 
+
+def test_action_filter_has_no_unused_error_threshold(action_filter: ActionFilter) -> None:
+    assert not hasattr(action_filter, "max_consecutive_errors")
+    assert not hasattr(action_filter, "consecutive_errors")
+    assert not hasattr(action_filter, "tripped")

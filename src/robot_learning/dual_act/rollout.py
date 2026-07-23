@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from robot_learning.safety.action_filter import ActionFilter, UnsafeActionError
+from robot_learning.safety.action_filter import ActionFilter
 
 from .state_machine import DualActStateMachine, Stage
 
@@ -76,7 +76,7 @@ class DualActRollout:
         try:
             proposed = skill.predict(self.robot.get_observation())
             safe = self.action_filter.apply(proposed, self.previous_action)
-        except (Exception, UnsafeActionError) as exc:
+        except Exception as exc:
             self.machine.abort(f"action failure: {exc}")
             self._hold_best_effort("action failure")
             raise
