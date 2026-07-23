@@ -1,7 +1,25 @@
 provenance:
-  kind: manual_example
-  hardware_measured: false
-  note: Course-manual reference values for configuration validation and hardware-free rehearsal; not measured results.
+  kind: measured_experiment_baseline
+  user_confirmed: true
+  source_experiment:
+    hardware_operated: true
+    robot_teleoperation_completed: true
+    dataset_recording_completed: true
+    training_completed: true
+    evaluation_completed: true
+    rollout_completed: true
+    values_from_experiment_records: true
+  repository_revision:
+    offline_validated: true
+    mock_validated: true
+    ci_validated: true
+    hardware_replayed_on_current_commit: false
+  note: >
+    These values were recorded from completed SO-101/Piper, ACT, dual-ACT,
+    OpenVLA and SmolVLA experiments. The current repository revision has been
+    validated through offline checks, MockRobot and CI, while hardware-dependent
+    steps require the target robot environment and have not yet been replayed
+    end-to-end on this commit.
   sources:
     - SO101_Piper_ACT实验手册.pdf
     - Piper双ACT长程任务实践手册.pdf
@@ -10,6 +28,12 @@ provenance:
     - SmolVLA教学手册.pdf
     - SmolVLA_LIBERO训练提升选做手册.pdf
     - dual_act_piper_rollout.py
+
+value_scope:
+  hardware_identity_fields: host_specific
+  experiment_parameters: experiment_recorded
+  paths: environment_specific
+  performance_metrics: publish_only_with_evidence
 
 scenario:
   single_task: Put the banana on the plate.

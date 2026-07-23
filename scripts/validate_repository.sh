@@ -11,16 +11,16 @@ from pathlib import Path
 from robot_learning.config import (
     load_yaml,
     validate_dual_act_config,
-    validate_manual_reference_config,
+    validate_experiment_baseline,
 )
 
 for path in Path("configs").rglob("*.yaml"):
     load_yaml(path)
 validate_dual_act_config(load_yaml("configs/dual_act/dual_act.example.yaml"))
-validate_manual_reference_config(load_yaml("configs/reference/manual_reference.yaml"))
+validate_experiment_baseline(load_yaml("configs/reference/measured_experiment_baseline.yaml"))
 print("configuration templates: valid")
 PY
-"$python_cmd" scripts/validate_reference_profile.py
+"$python_cmd" scripts/validate_experiment_baseline.py
 PYTHON="$python_cmd" bash scripts/validate_workflow_previews.sh
 "$python_cmd" -m pytest -q
 "$python_cmd" scripts/sanitize_logs.py --check-repository .

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and summarize the manual example profile without hardware."""
+"""Validate the measured experiment baseline without accessing hardware."""
 
 from __future__ import annotations
 
@@ -13,12 +13,12 @@ from robot_learning.config import (
     load_yaml,
     require_path,
     resolve_config_path,
-    validate_manual_reference_config,
+    validate_experiment_baseline,
 )
 
 
 def validate_projected_configs(config: dict[str, Any], root: Path = Path(".")) -> None:
-    """Ensure workflow-facing examples stay aligned with the reference source of truth."""
+    """Ensure workflow-facing configs stay aligned with the recorded baseline."""
 
     record = load_yaml(root / "configs/act/record.example.yaml")
     train = load_yaml(root / "configs/act/train.example.yaml")
@@ -76,7 +76,7 @@ def validate_projected_configs(config: dict[str, Any], root: Path = Path(".")) -
     )
     mismatches = [name for name, actual, expected in checks if actual != expected]
     if mismatches:
-        raise ConfigError("reference projections are out of sync: " + ", ".join(mismatches))
+        raise ConfigError("experiment projections are out of sync: " + ", ".join(mismatches))
 
     path_values = (
         require_path(record, "dataset.root"),
@@ -97,8 +97,16 @@ def build_summary(config: dict[str, Any]) -> dict[str, Any]:
     suites = require_path(config, "openvla_libero.suites")
     return {
         "status": "valid",
-        "profile_kind": require_path(config, "provenance.kind"),
-        "hardware_measured": require_path(config, "provenance.hardware_measured"),
+        "baseline_kind": require_path(config, "provenance.kind"),
+        "source_experiment_hardware_operated": require_path(
+            config, "provenance.source_experiment.hardware_operated"
+        ),
+        "current_commit_hardware_replayed": require_path(
+            config, "provenance.repository_revision.hardware_replayed_on_current_commit"
+        ),
+        "experiment_parameter_scope": require_path(
+            config, "value_scope.experiment_parameters"
+        ),
         "task": require_path(config, "scenario.single_task"),
         "recording_episodes": int(require_path(config, "act.recording.num_episodes")),
         "dataset_fps": int(require_path(config, "act.recording.dataset_fps")),
@@ -115,7 +123,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        default="configs/reference/manual_reference.yaml",
+        default="configs/reference/measured_experiment_baseline.yaml",
         type=Path,
     )
     parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
@@ -125,14 +133,15 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     config = load_yaml(args.config)
-    validate_manual_reference_config(config)
+    validate_experiment_baseline(config)
     validate_projected_configs(config)
     summary = build_summary(config)
     if args.json:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
     else:
-        print("manual reference profile: valid")
-        print("hardware measurement claimed: no")
+        print("measured experiment baseline: valid")
+        print("source experiment hardware operated: yes")
+        print("current commit hardware replayed: no")
         print(f"task: {summary['task']}")
         print(
             "recording: "

@@ -29,16 +29,16 @@ jobs:
           from robot_learning.config import (
               load_yaml,
               validate_dual_act_config,
-              validate_manual_reference_config,
+              validate_experiment_baseline,
           )
           for path in Path("configs").rglob("*.yaml"):
               load_yaml(path)
           validate_dual_act_config(load_yaml("configs/dual_act/dual_act.example.yaml"))
-          validate_manual_reference_config(
-              load_yaml("configs/reference/manual_reference.yaml")
+          validate_experiment_baseline(
+              load_yaml("configs/reference/measured_experiment_baseline.yaml")
           )
           PY
-      - run: python scripts/validate_reference_profile.py --json
+      - run: python scripts/validate_experiment_baseline.py --json
 
   repository-safety-check:
     runs-on: ubuntu-22.04

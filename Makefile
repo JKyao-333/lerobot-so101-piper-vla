@@ -1,4 +1,4 @@
-.PHONY: install-dev test lint validate workflow-dry-run reference-profile check-secrets check-large-files
+.PHONY: install-dev test lint validate workflow-dry-run experiment-baseline check-secrets check-large-files
 
 PYTHON ?= python
 
@@ -18,8 +18,8 @@ validate:
 workflow-dry-run:
 	bash scripts/validate_workflow_previews.sh
 
-reference-profile:
-	$(PYTHON) scripts/validate_reference_profile.py --json
+experiment-baseline:
+	$(PYTHON) scripts/validate_experiment_baseline.py --json
 
 check-secrets:
 	$(PYTHON) scripts/sanitize_logs.py --check-repository .

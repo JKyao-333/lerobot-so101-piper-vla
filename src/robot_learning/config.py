@@ -123,13 +123,28 @@ def validate_dual_act_config(config: dict[str, Any]) -> None:
             raise ConfigError("front_camera and wrist_camera must be distinct")
 
 
-def validate_manual_reference_config(config: dict[str, Any]) -> None:
-    """Validate the hardware-free manual example profile derived from the manuals."""
+def validate_experiment_baseline(config: dict[str, Any]) -> None:
+    """Validate the user-confirmed experiment baseline and revision boundary."""
 
     required = (
         "provenance.kind",
-        "provenance.hardware_measured",
+        "provenance.user_confirmed",
+        "provenance.source_experiment.hardware_operated",
+        "provenance.source_experiment.robot_teleoperation_completed",
+        "provenance.source_experiment.dataset_recording_completed",
+        "provenance.source_experiment.training_completed",
+        "provenance.source_experiment.evaluation_completed",
+        "provenance.source_experiment.rollout_completed",
+        "provenance.source_experiment.values_from_experiment_records",
+        "provenance.repository_revision.offline_validated",
+        "provenance.repository_revision.mock_validated",
+        "provenance.repository_revision.ci_validated",
+        "provenance.repository_revision.hardware_replayed_on_current_commit",
         "provenance.sources",
+        "value_scope.hardware_identity_fields",
+        "value_scope.experiment_parameters",
+        "value_scope.paths",
+        "value_scope.performance_metrics",
         "scenario.single_task",
         "scenario.long_horizon_task",
         "scenario.skill_a",
@@ -165,12 +180,42 @@ def validate_manual_reference_config(config: dict[str, Any]) -> None:
     for key in required:
         require_path(config, key)
 
-    if require_path(config, "provenance.kind") != "manual_example":
-        raise ConfigError("provenance.kind must be manual_example")
-    if require_path(config, "provenance.hardware_measured") is not False:
-        raise ConfigError("manual reference profile must not claim hardware measurement")
+    if require_path(config, "provenance.kind") != "measured_experiment_baseline":
+        raise ConfigError("provenance.kind must be measured_experiment_baseline")
+    true_provenance_fields = (
+        "provenance.user_confirmed",
+        "provenance.source_experiment.hardware_operated",
+        "provenance.source_experiment.robot_teleoperation_completed",
+        "provenance.source_experiment.dataset_recording_completed",
+        "provenance.source_experiment.training_completed",
+        "provenance.source_experiment.evaluation_completed",
+        "provenance.source_experiment.rollout_completed",
+        "provenance.source_experiment.values_from_experiment_records",
+        "provenance.repository_revision.offline_validated",
+        "provenance.repository_revision.mock_validated",
+        "provenance.repository_revision.ci_validated",
+    )
+    for key in true_provenance_fields:
+        if require_path(config, key) is not True:
+            raise ConfigError(f"{key} must be true")
+    replayed = require_path(
+        config, "provenance.repository_revision.hardware_replayed_on_current_commit"
+    )
+    if replayed is not False:
+        raise ConfigError(
+            "provenance.repository_revision.hardware_replayed_on_current_commit must be false"
+        )
+    expected_scopes = {
+        "value_scope.hardware_identity_fields": "host_specific",
+        "value_scope.experiment_parameters": "experiment_recorded",
+        "value_scope.paths": "environment_specific",
+        "value_scope.performance_metrics": "publish_only_with_evidence",
+    }
+    for key, expected in expected_scopes.items():
+        if require_path(config, key) != expected:
+            raise ConfigError(f"{key} must be {expected}")
     if require_path(config, "dual_act.allow_robot_execution") is not False:
-        raise ConfigError("public manual example must disallow robot execution")
+        raise ConfigError("public experiment baseline must disallow robot execution")
     if not isinstance(require_path(config, "dual_act.allow_shared_checkpoint"), bool):
         raise ConfigError("dual_act.allow_shared_checkpoint must be a boolean")
     sources = require_path(config, "provenance.sources")
@@ -244,30 +289,46 @@ def validate_manual_reference_config(config: dict[str, Any]) -> None:
     if not isinstance(suites, dict) or set(suites) != {"spatial", "object", "goal", "long"}:
         raise ConfigError("OpenVLA suites must contain spatial, object, goal, and long")
 
-    forbidden_measured_keys = {
-        "success_rate",
-        "measured_latency",
-        "hardware_verified",
-        "measured_gpu",
+    forbidden_claim_keys = {
+        "invented_success_rate",
+        "invented_latency",
+        "invented_loss",
+        "industrial_grade",
+        "production_verified",
+        "safety_certified",
     }
 
-    def find_forbidden(value: Any) -> set[str]:
+    metric_evidence_fields = {
+        "evidence_path",
+        "evaluation_date",
+        "episodes_or_tasks",
+        "source_record",
+    }
+
+    def validate_claims(value: Any, location: str = "root") -> set[str]:
         if isinstance(value, dict):
-            found = forbidden_measured_keys.intersection(value)
-            for child in value.values():
-                found.update(find_forbidden(child))
+            found = forbidden_claim_keys.intersection(value)
+            if "success_rate" in value:
+                missing = sorted(metric_evidence_fields.difference(value))
+                if missing:
+                    raise ConfigError(
+                        f"success_rate at {location} requires evidence metadata: "
+                        + ", ".join(missing)
+                    )
+            for key, child in value.items():
+                found.update(validate_claims(child, f"{location}.{key}"))
             return found
         if isinstance(value, list):
             found: set[str] = set()
-            for child in value:
-                found.update(find_forbidden(child))
+            for index, child in enumerate(value):
+                found.update(validate_claims(child, f"{location}[{index}]"))
             return found
         return set()
 
-    forbidden = find_forbidden(config)
+    forbidden = validate_claims(config)
     if forbidden:
         raise ConfigError(
-            "manual example cannot claim measured results: " + ", ".join(sorted(forbidden))
+            "experiment baseline contains unsupported claims: " + ", ".join(sorted(forbidden))
         )
 
     piper_paths = (
