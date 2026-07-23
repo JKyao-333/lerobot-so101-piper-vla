@@ -50,6 +50,8 @@ act:
     episodes: 1
 
 dual_act:
+  allow_robot_execution: false
+  allow_shared_checkpoint: false
   control_hz: 15
   total_timeout_s: 100
   handoff_timeout_s: 30

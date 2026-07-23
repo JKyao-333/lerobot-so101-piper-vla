@@ -49,6 +49,11 @@ def validate_projected_configs(config: dict[str, Any], root: Path = Path(".")) -
             require_path(dual, "control_hz"),
             config["dual_act"]["control_hz"],
         ),
+        (
+            "dual ACT execution permission",
+            require_path(dual, "allow_robot_execution"),
+            config["dual_act"]["allow_robot_execution"],
+        ),
         ("dual ACT skill A", require_path(dual, "skills.a.task"), config["scenario"]["skill_a"]),
         ("dual ACT skill B", require_path(dual, "skills.b.task"), config["scenario"]["skill_b"]),
         (

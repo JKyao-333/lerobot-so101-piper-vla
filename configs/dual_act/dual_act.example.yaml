@@ -1,8 +1,13 @@
-execute_robot: false
+allow_robot_execution: false
+allow_shared_checkpoint: false
+can_interface: can0
+bitrate: 1000000
+front_camera: 0
+wrist_camera: 2
+device: cuda
 control_hz: 15
 total_timeout_s: 100
 handoff_timeout_s: 30
-max_consecutive_errors: 1
 skills:
   a:
     checkpoint: $HOME/lerobot_work/models/act_banana_plate_20000/pretrained_model

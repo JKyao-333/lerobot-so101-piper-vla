@@ -38,7 +38,8 @@ def require_path(config: dict[str, Any], dotted_path: str) -> Any:
 
 def validate_dual_act_config(config: dict[str, Any]) -> None:
     required = (
-        "execute_robot",
+        "allow_robot_execution",
+        "allow_shared_checkpoint",
         "control_hz",
         "total_timeout_s",
         "handoff_timeout_s",
@@ -58,11 +59,26 @@ def validate_dual_act_config(config: dict[str, Any]) -> None:
     for key in required:
         require_path(config, key)
 
+    for key in ("allow_robot_execution", "allow_shared_checkpoint"):
+        if not isinstance(require_path(config, key), bool):
+            raise ConfigError(f"{key} must be a boolean")
+
     action_dim = int(require_path(config, "safety.action_dim"))
     for key in ("lower_bounds", "upper_bounds", "max_step_delta"):
         values = require_path(config, f"safety.{key}")
         if not isinstance(values, list) or len(values) != action_dim:
             raise ConfigError(f"safety.{key} must contain {action_dim} values")
+
+    lower_bounds = require_path(config, "safety.lower_bounds")
+    upper_bounds = require_path(config, "safety.upper_bounds")
+    max_step_delta = require_path(config, "safety.max_step_delta")
+    for index, (lower, upper, delta) in enumerate(
+        zip(lower_bounds, upper_bounds, max_step_delta, strict=True)
+    ):
+        if float(lower) >= float(upper):
+            raise ConfigError(f"safety bounds must increase at index {index}")
+        if float(delta) <= 0:
+            raise ConfigError(f"safety.max_step_delta must be positive at index {index}")
 
     if float(require_path(config, "control_hz")) <= 0:
         raise ConfigError("control_hz must be positive")
@@ -74,6 +90,20 @@ def validate_dual_act_config(config: dict[str, Any]) -> None:
         timeout = float(require_path(config, f"skills.{skill}.timeout_s"))
         if completion <= 0 or timeout <= completion:
             raise ConfigError(f"skills.{skill}.timeout_s must be greater than completion_s")
+
+    task_a = str(require_path(config, "skills.a.task")).strip()
+    task_b = str(require_path(config, "skills.b.task")).strip()
+    if not task_a or not task_b or task_a == task_b:
+        raise ConfigError("skill A and skill B tasks must be non-empty and distinct")
+
+    checkpoint_a = str(require_path(config, "skills.a.checkpoint"))
+    checkpoint_b = str(require_path(config, "skills.b.checkpoint"))
+    if checkpoint_a == checkpoint_b and not require_path(config, "allow_shared_checkpoint"):
+        raise ConfigError("skill checkpoints must be distinct unless allow_shared_checkpoint=true")
+
+    if "front_camera" in config and "wrist_camera" in config:
+        if config["front_camera"] == config["wrist_camera"]:
+            raise ConfigError("front_camera and wrist_camera must be distinct")
 
 
 def validate_manual_reference_config(config: dict[str, Any]) -> None:
@@ -98,6 +128,8 @@ def validate_manual_reference_config(config: dict[str, Any]) -> None:
         "act.training.reference_checkpoint_step",
         "act.rollout.duration_s",
         "dual_act.control_hz",
+        "dual_act.allow_robot_execution",
+        "dual_act.allow_shared_checkpoint",
         "dual_act.total_timeout_s",
         "dual_act.handoff_timeout_s",
         "dual_act.action_dim",
@@ -120,6 +152,10 @@ def validate_manual_reference_config(config: dict[str, Any]) -> None:
         raise ConfigError("provenance.kind must be manual_example")
     if require_path(config, "provenance.hardware_measured") is not False:
         raise ConfigError("manual reference profile must not claim hardware measurement")
+    if require_path(config, "dual_act.allow_robot_execution") is not False:
+        raise ConfigError("public manual example must disallow robot execution")
+    if not isinstance(require_path(config, "dual_act.allow_shared_checkpoint"), bool):
+        raise ConfigError("dual_act.allow_shared_checkpoint must be a boolean")
     sources = require_path(config, "provenance.sources")
     if not isinstance(sources, list) or len(sources) < 7:
         raise ConfigError("provenance.sources must list the manuals and supplemental code")
@@ -150,6 +186,10 @@ def validate_manual_reference_config(config: dict[str, Any]) -> None:
         for field in ("width", "height", "fps"):
             if int(require_path(config, f"hardware.cameras.{name}.{field}")) <= 0:
                 raise ConfigError(f"hardware.cameras.{name}.{field} must be positive")
+    if require_path(config, "hardware.cameras.front.index_or_path") == require_path(
+        config, "hardware.cameras.wrist.index_or_path"
+    ):
+        raise ConfigError("front and wrist camera identifiers must be distinct")
 
     dataset_fps = float(require_path(config, "act.recording.dataset_fps"))
     if dataset_fps != float(require_path(config, "dual_act.control_hz")):
@@ -186,3 +226,42 @@ def validate_manual_reference_config(config: dict[str, Any]) -> None:
     suites = require_path(config, "openvla_libero.suites")
     if not isinstance(suites, dict) or set(suites) != {"spatial", "object", "goal", "long"}:
         raise ConfigError("OpenVLA suites must contain spatial, object, goal, and long")
+
+    forbidden_measured_keys = {
+        "success_rate",
+        "measured_latency",
+        "hardware_verified",
+        "measured_gpu",
+    }
+
+    def find_forbidden(value: Any) -> set[str]:
+        if isinstance(value, dict):
+            found = forbidden_measured_keys.intersection(value)
+            for child in value.values():
+                found.update(find_forbidden(child))
+            return found
+        if isinstance(value, list):
+            found: set[str] = set()
+            for child in value:
+                found.update(find_forbidden(child))
+            return found
+        return set()
+
+    forbidden = find_forbidden(config)
+    if forbidden:
+        raise ConfigError(
+            "manual example cannot claim measured results: " + ", ".join(sorted(forbidden))
+        )
+
+    piper_paths = (
+        str(require_path(config, "act.rollout.local_checkpoint")),
+        str(require_path(config, "smolvla_piper.checkpoint")),
+    )
+    if any("openvla" in path.lower() for path in piper_paths):
+        raise ConfigError("OpenVLA checkpoints cannot be used for Piper rollout")
+    suite_checkpoints = {
+        str(require_path(config, f"openvla_libero.suites.{suite}.checkpoint"))
+        for suite in ("spatial", "object", "goal", "long")
+    }
+    if str(require_path(config, "smolvla_piper.checkpoint")) in suite_checkpoints:
+        raise ConfigError("SmolVLA Piper checkpoint cannot be an OpenVLA LIBERO suite checkpoint")

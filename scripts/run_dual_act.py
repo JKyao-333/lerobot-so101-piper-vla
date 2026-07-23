@@ -64,12 +64,19 @@ def main() -> int:
         raise SystemExit("--auto-confirm-mock is forbidden with --hardware")
     config = load_yaml(args.config)
     validate_dual_act_config(config)
+    config_allows_execution = bool(require_path(config, "allow_robot_execution"))
+    if args.execute_robot and not config_allows_execution:
+        raise SystemExit(
+            "robot execution requires both allow_robot_execution=true in the config "
+            "and --execute-robot on the command line"
+        )
+    execute_robot = bool(args.execute_robot and config_allows_execution)
     limits = ActionLimits(
         tuple(float(v) for v in require_path(config, "safety.lower_bounds")),
         tuple(float(v) for v in require_path(config, "safety.upper_bounds")),
         tuple(float(v) for v in require_path(config, "safety.max_step_delta")),
     )
-    action_filter = ActionFilter(limits, int(config.get("max_consecutive_errors", 1)))
+    action_filter = ActionFilter(limits)
 
     adapter: LerobotPiperAdapter | None = None
     if args.hardware:
@@ -83,7 +90,7 @@ def main() -> int:
             front_camera=config.get("front_camera", 0),
             wrist_camera=config.get("wrist_camera", 2),
             device=str(config.get("device", "cuda")),
-            execute_robot=args.execute_robot,
+            execute_robot=execute_robot,
         )
         adapter.connect()
         skill_a = adapter.load_skill(
@@ -106,7 +113,7 @@ def main() -> int:
         handoff_timeout_s=float(require_path(config, "handoff_timeout_s")),
         total_timeout_s=float(require_path(config, "total_timeout_s")),
     )
-    rollout = DualActRollout(machine, robot, action_filter, execute_robot=args.execute_robot)
+    rollout = DualActRollout(machine, robot, action_filter, execute_robot=execute_robot)
     completion_a = float(require_path(config, "skills.a.completion_s"))
     completion_b = float(require_path(config, "skills.b.completion_s"))
     period = 1.0 / float(require_path(config, "control_hz"))
