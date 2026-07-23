@@ -12,6 +12,7 @@ from robot_learning.config import (
     ConfigError,
     load_yaml,
     require_path,
+    resolve_config_path,
     validate_manual_reference_config,
 )
 
@@ -26,6 +27,7 @@ def validate_projected_configs(config: dict[str, Any], root: Path = Path(".")) -
     openvla = load_yaml(root / "configs/openvla/libero_eval.example.yaml")
     finetune = load_yaml(root / "configs/smolvla/finetune.example.yaml")
     async_config = load_yaml(root / "configs/smolvla/async_inference.example.yaml")
+    sync_config = load_yaml(root / "configs/smolvla/sync_rollout.example.yaml")
 
     checks = (
         (
@@ -75,6 +77,18 @@ def validate_projected_configs(config: dict[str, Any], root: Path = Path(".")) -
     mismatches = [name for name, actual, expected in checks if actual != expected]
     if mismatches:
         raise ConfigError("reference projections are out of sync: " + ", ".join(mismatches))
+
+    path_values = (
+        require_path(record, "dataset.root"),
+        require_path(train, "dataset.root"),
+        require_path(train, "training.output_dir"),
+        require_path(rollout, "checkpoint"),
+        require_path(finetune, "dataset_root"),
+        require_path(finetune, "output_dir"),
+        require_path(sync_config, "log_file"),
+    )
+    for value in path_values:
+        resolve_config_path(value)
 
 
 def build_summary(config: dict[str, Any]) -> dict[str, Any]:

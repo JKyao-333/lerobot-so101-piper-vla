@@ -5,11 +5,16 @@ No upstream source is copied here. Imports occur only when hardware mode is requ
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from robot_learning.config import resolve_config_path
+
 from .skill_runtime import SkillRuntime
+
+logger = logging.getLogger(__name__)
 
 
 class LerobotPiperAdapter:
@@ -64,9 +69,14 @@ class LerobotPiperAdapter:
         self.execute_robot = execute_robot
         self.dataset_features: dict[str, Any] | None = None
         self.action_names: tuple[str, ...] = ()
+        self._control_connected = False
+        self._last_safe_action: dict[str, float] | None = None
 
     def connect(self) -> None:
-        self._robot.connect()
+        try:
+            self._robot.connect()
+        finally:
+            self._control_connected = self._pinned_piper_control_interface() is not None
         actions = self._feature_builder(self._robot.action_features, "action")
         observations = self._feature_builder(self._robot.observation_features, "observation")
         self.dataset_features = {**actions, **observations}
@@ -76,7 +86,10 @@ class LerobotPiperAdapter:
         self.action_names = tuple(str(name) for name in names)
 
     def disconnect(self) -> None:
-        self._robot.disconnect()
+        try:
+            self._robot.disconnect()
+        finally:
+            self._control_connected = False
 
     def get_observation(self) -> dict[str, Any]:
         return self._robot.get_observation()
@@ -86,23 +99,114 @@ class LerobotPiperAdapter:
             return
         if len(action) != len(self.action_names):
             raise ValueError("safe action dimension does not match Piper action names")
-        self._robot.send_action(dict(zip(self.action_names, action, strict=True)))
+        command = dict(zip(self.action_names, action, strict=True))
+        self._robot.send_action(command)
+        self._last_safe_action = {name: float(value) for name, value in command.items()}
 
-    def stop(self) -> None:
-        if not self.execute_robot or not getattr(self._robot, "is_connected", False):
-            return
-        observation = self.get_observation()
-        missing = set(self.action_names) - set(observation)
-        if missing:
-            raise RuntimeError(
-                f"cannot issue hold command; missing observation keys: {sorted(missing)}"
-            )
-        self._robot.send_action({name: float(observation[name]) for name in self.action_names})
+    def _pinned_piper_control_interface(self) -> Any | None:
+        """Return the private control interface for pinned Piper commit abf721d9 only.
+
+        This is the sole location that accesses Piper._iface. The private API is not
+        treated as stable and every caller must handle an unavailable interface.
+        """
+
+        interface = getattr(self._robot, "_iface", None)
+        if interface is None or getattr(interface, "piper", None) is None:
+            return None
+        return interface
+
+    def _best_effort_hold_via_pinned_piper_adapter(self) -> bool:
+        """Hold the latest safe/current pose through the pinned low-level interface."""
+
+        interface = self._pinned_piper_control_interface()
+        if interface is None:
+            raise RuntimeError("pinned Piper control interface is unavailable")
+
+        config = self._robot.config
+        joint_names = list(config.joint_names)
+        status = interface.get_status_deg()
+        joints_hw_deg: list[float | None] = [
+            float(status[f"joint_{index}.pos"]) if f"joint_{index}.pos" in status else None
+            for index in range(1, len(joint_names) + 1)
+        ]
+        gripper_mm = (
+            float(status["gripper.pos"])
+            if config.include_gripper and "gripper.pos" in status
+            else None
+        )
+
+        if self._last_safe_action:
+            min_pos = getattr(interface, "min_pos", None)
+            max_pos = getattr(interface, "max_pos", None)
+            if not isinstance(min_pos, list) or not isinstance(max_pos, list):
+                raise RuntimeError("pinned Piper limits are unavailable")
+            aliases = dict(config.joint_aliases)
+            joint_index = {name: index for index, name in enumerate(joint_names)}
+            for key, raw_value in self._last_safe_action.items():
+                if key == "gripper.pos":
+                    if config.include_gripper:
+                        value = float(raw_value)
+                        if config.use_degrees:
+                            gripper_mm = value
+                        else:
+                            value = max(0.0, min(100.0, value))
+                            gripper_mm = min_pos[6] + (max_pos[6] - min_pos[6]) * value / 100.0
+                    continue
+                action_name = key.removesuffix(".pos")
+                joint_name = aliases.get(action_name, action_name)
+                if joint_name not in joint_index:
+                    continue
+                index = joint_index[joint_name]
+                value = float(raw_value)
+                if config.use_degrees:
+                    oriented_deg = value
+                else:
+                    sign = config.joint_signs[index]
+                    oriented_min = min_pos[index] if sign >= 0 else -max_pos[index]
+                    oriented_max = max_pos[index] if sign >= 0 else -min_pos[index]
+                    normalized = max(-100.0, min(100.0, value))
+                    oriented_deg = oriented_min + (oriented_max - oriented_min) * (
+                        (normalized + 100.0) / 200.0
+                    )
+                joints_hw_deg[index] = max(
+                    min_pos[index],
+                    min(max_pos[index], oriented_deg * config.joint_signs[index]),
+                )
+
+        if any(value is None for value in joints_hw_deg):
+            raise RuntimeError("cannot construct a complete Piper hold command")
+        interface.set_joint_positions_deg(
+            [float(value) for value in joints_hw_deg if value is not None], gripper_mm
+        )
+        return True
+
+    def hold_current_pose_best_effort(self) -> bool:
+        """Best-effort position hold; this is not a physical emergency stop."""
+
+        if not self.execute_robot:
+            return True
+        if not self._control_connected:
+            logger.error("cannot hold Piper pose: control channel is not connected")
+            return False
+        try:
+            return self._best_effort_hold_via_pinned_piper_adapter()
+        except Exception:
+            logger.exception("best-effort Piper hold failed")
+            return False
+
+    def stop(self) -> bool:
+        """Protocol alias for best-effort position hold, not an emergency stop."""
+
+        return self.hold_current_pose_best_effort()
+
+    @staticmethod
+    def resolve_checkpoint_path(checkpoint: str | Path) -> Path:
+        return resolve_config_path(checkpoint)
 
     def load_skill(self, checkpoint: str | Path, task_name: str) -> SkillRuntime:
         if self.dataset_features is None:
             raise RuntimeError("connect the robot before loading a skill")
-        checkpoint_path = Path(checkpoint)
+        checkpoint_path = self.resolve_checkpoint_path(checkpoint)
         if not checkpoint_path.is_dir():
             raise FileNotFoundError(f"checkpoint directory not found: {checkpoint_path}")
         from lerobot.policies import make_pre_post_processors

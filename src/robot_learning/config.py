@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +12,21 @@ import yaml
 
 class ConfigError(ValueError):
     """Raised when a public configuration template is incomplete or malformed."""
+
+
+_ENV_PATTERN = re.compile(r"\$(?:\{[^}]+\}|[A-Za-z_][A-Za-z0-9_]*)")
+
+
+def resolve_config_path(value: str | Path) -> Path:
+    """Expand user and environment syntax without requiring the path to exist."""
+
+    raw = str(value)
+    home = os.environ.get("HOME") or str(Path.home())
+    portable_raw = re.sub(r"\$(?:\{HOME\}|HOME(?![A-Za-z0-9_]))", lambda _: home, raw)
+    expanded = os.path.expandvars(portable_raw)
+    if _ENV_PATTERN.search(expanded):
+        raise ConfigError(f"path contains an unresolved environment variable: {raw}")
+    return Path(expanded).expanduser()
 
 
 def load_yaml(path: str | Path) -> dict[str, Any]:
