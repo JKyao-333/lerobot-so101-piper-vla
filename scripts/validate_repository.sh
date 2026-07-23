@@ -21,6 +21,7 @@ validate_manual_reference_config(load_yaml("configs/reference/manual_reference.y
 print("configuration templates: valid")
 PY
 "$python_cmd" scripts/validate_reference_profile.py
+PYTHON="$python_cmd" bash scripts/validate_workflow_previews.sh
 "$python_cmd" -m pytest -q
 "$python_cmd" scripts/sanitize_logs.py --check-repository .
 "$python_cmd" scripts/check_repository_files.py --root . --max-mb 20

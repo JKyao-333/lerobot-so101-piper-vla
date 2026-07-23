@@ -51,3 +51,14 @@ jobs:
       - run: python scripts/sanitize_logs.py --check-repository .
       - run: python scripts/check_repository_files.py --root . --max-mb 20
       - run: git diff --check
+
+  workflow-dry-run:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e .
+      - run: bash scripts/validate_workflow_previews.sh
