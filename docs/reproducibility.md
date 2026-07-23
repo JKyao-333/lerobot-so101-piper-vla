@@ -2,7 +2,7 @@
 
 For each private run, record:
 
-- value origin: `manual_reference` or `measured`;
+- value origin: `experiment_recorded`, `replayed_on_current_commit`, `derived`, or `reference_from_upstream`;
 - repository commit and dirty/clean status;
 - upstream commits or package versions;
 - sanitized resolved configuration and command;
@@ -14,4 +14,4 @@ For each private run, record:
 
 Use `scripts/collect_env.sh` for a minimal sanitized environment summary and `results/result_template.md` for future evidence. Public metrics require the corresponding reviewable log; completed execution alone is not a quantitative result.
 
-`configs/reference/manual_reference.yaml` must retain `hardware_measured: false`. Promote values into a measured result record instead of rewriting their provenance.
+`configs/reference/measured_experiment_baseline.yaml` preserves the completed source experiment. A new hardware run creates a separate `replayed_on_current_commit` record and must not overwrite the source provenance. CI and MockRobot evidence belongs to repository-revision validation, not a robot result.

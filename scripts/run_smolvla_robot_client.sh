@@ -20,5 +20,5 @@ cmd=(python -m lerobot.async_inference.robot_client --server_address="$POLICY_SE
   --policy_device="${POLICY_DEVICE:-cuda}" --client_device="${CLIENT_DEVICE:-cpu}"
   --fps="${CONTROL_FPS:-15}" --actions_per_chunk="${ACTIONS_PER_CHUNK:-50}"
   --chunk_size_threshold="${CHUNK_THRESHOLD:-0.5}" --aggregate_fn_name="${AGGREGATE_FN:-weighted_average}")
-printf 'Network inference is not a safety-rated real-time control channel. Timeout or tunnel loss requires physical supervision and immediate stop.\n'
+printf 'Network inference is not a certified real-time robot-control channel. Timeout or tunnel loss requires physical supervision and immediate stop.\n'
 run_if_enabled "$execute" "${cmd[@]}"

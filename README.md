@@ -2,7 +2,13 @@
 
 **SO-101 Teleoperation, Piper ACT Imitation Learning, Dual-Skill Orchestration and VLA Deployment**
 
-本项目记录并工程化整理一套真实机械臂学习实践流程，覆盖 SO-101 leader 遥操作 Piper、ACT 示教数据采集与训练、双 ACT 长程任务组合、OpenVLA-LIBERO 仿真评测，以及 SmolVLA 基于 Piper 真机数据的微调和同步/异步部署。
+本仓库基于已经完成的 SO-101/Piper 真机实验进行工程化复刻，覆盖 SO-101 leader 遥操作 Piper、ACT 示教数据采集与训练、双 ACT 长程任务组合、OpenVLA-LIBERO 仿真评测，以及 SmolVLA 基于 Piper 真机数据的微调和同步/异步部署。
+
+episode 数量、采集频率、训练步数、checkpoint 选择、双 ACT 参数、OpenVLA 评测配置和 SmolVLA 同步/异步推理配置，均来自用户实际完成的实验记录与补充资料，不是为了展示而虚构的默认值。源实验已经完成硬件操作、训练、评测和 rollout；当前工程重构 revision 已通过离线、MockRobot 和 CI 验证，但尚未在用户硬件环境重新完成一次端到端回归。
+
+GitHub Actions 有意运行在无机器人、无 CAN、无摄像头、无 GPU 模型和无 checkpoint 的环境中，用于验证配置、命令构造、Mock 状态机、安全门控、仓库完整性和复刻流程。硬件相关步骤由复刻者在本地安装依赖、填写主机参数并接入 SO-101、Piper、SocketCAN 和双摄像头后分级执行。
+
+> This repository is an engineering reconstruction of completed SO-101/Piper robot experiments. Its run parameters were recorded from actual experiments, while GitHub Actions intentionally validates software reproducibility without physical hardware. The current refactored revision still requires an end-to-end replay on the target robot environment.
 
 仓库提供参数化命令封装、原创双技能状态机、安全过滤、脱敏工具、测试和文档，不重新分发 LeRobot、ACT、OpenVLA、SmolVLA、LIBERO、Piper SDK 源码，也不包含私有手册、数据集、模型权重、原始日志或设备标识。
 
@@ -15,7 +21,7 @@
 - SmolVLA Base 使用 Piper LeRobot 数据微调、本地同步 rollout，以及 Policy Server—SSH 隧道—Robot Client 异步链路。
 - 无机器人、无 GPU 的配置、状态机、安全过滤、超时和日志脱敏测试。
 
-以上能力表示工程流程已经完成离线验证。仓库现已纳入课程手册参考参数，包括 episode 数量、训练步数和 checkpoint 示例；它们明确标记为 `manual_example`，仅用于配置与流程参考，不是当前硬件实测结果。由于没有可公开核验的原始运行日志，仓库仍不发布成功率、GPU 型号、耗时或 checkpoint 效果指标。
+上述硬件、训练、评测和部署能力来自已完成的源实验；仓库中的对应参数标记为 `experiment_recorded`。当前 revision 的声明范围是配置一致性、命令预演、Mock 行为和 CI，而不是一次新的真机回归。资料未提供可随仓库公开核验的成功率、loss、延迟或耗时证据，因此不自行补写这些指标。完整区分见 [reproduction status](docs/reproduction_status.md) 和 [measured experiment baseline](docs/measured_experiment_baseline.md)。
 
 ## 系统组成与架构
 
@@ -43,7 +49,7 @@ flowchart LR
 1. `scripts/check_robot_environment.sh` 只检查运行条件，不收集用户、网络、USB 序列号或凭据。
 2. `scripts/setup_can.sh` 检查接口并预览 CAN 配置；传入 `--execute` 才修改接口。
 3. `scripts/record_piper_act.sh` 从环境变量组装 Piper、SO-101 leader、双相机、任务和数据集参数。
-4. `scripts/train_act_autodl.sh` 参数化训练目录、设备、步数、batch size、W&B 和保存频率；采用手册的 20,000-step checkpoint 作为参考，手册未固定的 ACT batch/save 参数继续交给对应 LeRobot 版本。
+4. `scripts/train_act_autodl.sh` 参数化训练目录、设备、步数、batch size、W&B 和保存频率；20,000-step checkpoint 是源实验记录的选择，未明确记录的 ACT batch/save 参数继续交给对应 LeRobot 版本。
 5. `scripts/download_act_checkpoint.sh` 通过显式 SSH 环境变量回传检查点。
 6. `scripts/rollout_act_local.sh` 默认只预览；`--execute-robot` 才启动上游真机 rollout。
 
@@ -86,28 +92,41 @@ python scripts/run_dual_act.py \
 
 异步公网链路不被声明为安全实时控制系统；网络中断时操作人员必须能立即停止设备。详见 [SmolVLA fine-tuning](docs/smolvla_finetuning.md) 与 [async inference](docs/async_inference.md)。
 
-## 快速开始
+## 面向复刻者的开始流程
 
 ```bash
+git clone https://github.com/JKyao-333/lerobot-so101-piper-vla.git
+cd lerobot-so101-piper-vla
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
-cp .env.example .env
-make test
 make validate
+make workflow-dry-run
+cp .env.example .env
 ```
 
-无硬件时先运行 `python scripts/validate_reference_profile.py --json`，再用 MockRobot 和 shell dry-run 检查完整参数链。参考值、来源和边界见 [manual reference profile](docs/manual_reference_profile.md)。
+随后按顺序完成：
 
-随后按目标流程安装对应上游依赖，并在本地 `.env` 中逐项确认设备端口、相机编号、CAN 接口与 bitrate、任务文本、数据集路径、模型/checkpoint 路径、网络端点、云端目录和上游版本。`.env` 不得提交。所有脚本的第一次运行应保持预览或 dry-run；预览模式不要求已经安装 LeRobot 或存在模型目录。
+1. 安装 [upstream versions](docs/upstream_versions.md) 指定的对应依赖。
+2. 运行 `python scripts/validate_experiment_baseline.py --json`。
+3. 在本地 `.env` 中替换设备端口、CAN、相机、任务、数据集、checkpoint、网络、云端目录和 GPU 参数。
+4. 接入 SO-101、Piper、SocketCAN、front/wrist 相机及物理停止装置。
+5. 运行环境检查并确认设备发现结果。
+6. 先预览、再由现场操作员配置 CAN。
+7. 分别验证遥操作、数据采集和每个 checkpoint，不直接从组合任务开始。
+8. 保持动作发送关闭，先验证机器人连接、观测键和动作维度。
+9. 清空工作区并采用短时、低速、有人监护的单技能 rollout。
+10. 最后才启用双技能或完整实验 replay，并创建新的结果记录。
+
+软件环境、配置模板、工作流、Mock 验证和安全门控已经准备完成；复刻者仍需安装依赖、填写本机设备/路径参数并接入对应硬件。完整步骤见 [hardware onboarding](docs/hardware_onboarding.md)。`.env` 不得提交。
 
 ## 测试与 CI
 
-`make test` 和 `make validate` 不连接 Piper、不创建 can0、不下载模型、不运行 GPU 训练或 MuJoCo 大规模评测。GitHub Actions 包含 Python/Shell 语法、pytest、配置模板、secret pattern、大文件/权重/视频检查、`git diff --check`，并逐个执行所有 shell workflow 的无硬件预演。
+`make test` 和 `make validate` 不连接 Piper、不创建 can0、不下载模型、不运行 GPU 训练或 MuJoCo 大规模评测。GitHub Actions 包含 Python/Shell 语法、pytest、实验 provenance 与配置投影、secret pattern、大文件/权重/视频检查、`git diff --check`，并逐个执行所有 shell workflow 的无硬件预演。CI 验证软件可复刻性，不替代当前 commit 的硬件 replay。
 
 ## 安全边界
 
-物理急停、空场景、现场监护、低速验收和相机一致性是前提。软件限幅无法识别桌面碰撞、卡死、线缆缠绕、人体接触或所有通信故障。本项目不具备工业安全认证、量产可靠性或无人值守运行能力。执行任何真机命令前必须阅读 [safety](docs/safety.md)。
+物理急停、空场景、现场监护、低速验收和相机一致性是前提。软件限幅无法识别桌面碰撞、卡死、线缆缠绕、人体接触或所有通信故障。本项目是研究与教学复刻工程，不替代经过认证的工业控制系统，也不支持脱离现场操作员运行。执行任何真机命令前必须阅读 [safety](docs/safety.md)。
 
 ## 上游项目与许可
 

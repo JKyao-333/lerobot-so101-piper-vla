@@ -30,7 +30,7 @@ def contains_unapproved_sensitive_text(text: str) -> bool:
 
     candidate = text
     for literal in PUBLIC_REFERENCE_LITERALS:
-        candidate = candidate.replace(literal, "<PUBLIC_MANUAL_REFERENCE_PATH>")
+        candidate = candidate.replace(literal, "<PUBLIC_EXPERIMENT_PATH>")
     return contains_sensitive_text(candidate)
 
 
