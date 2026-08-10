@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -5,6 +6,8 @@ from pathlib import Path
 import yaml
 
 from robot_learning.config import load_yaml
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def write_execution_enabled_config(path: Path) -> Path:
@@ -15,8 +18,15 @@ def write_execution_enabled_config(path: Path) -> Path:
 
 
 def run_cli(*args: str) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    source_path = str(ROOT / "src")
+    env["PYTHONPATH"] = os.pathsep.join(
+        value for value in (source_path, env.get("PYTHONPATH", "")) if value
+    )
     return subprocess.run(
         [sys.executable, "scripts/run_dual_act.py", *args],
+        cwd=ROOT,
+        env=env,
         check=False,
         capture_output=True,
         text=True,
