@@ -1,6 +1,6 @@
-# 基于 LeRobot 的 SO-101/Piper 机械臂模仿学习与 VLA 部署
+# SO-101/Piper 具身智能机器人学习数据闭环与部署工程
 
-**SO-101 Teleoperation, Piper ACT Imitation Learning, Dual-Skill Orchestration and VLA Deployment**
+**Robot Data Pipeline, Policy Runtime, Dual-Skill Orchestration and Deployment Engineering**
 
 本仓库基于已经完成的 SO-101/Piper 真机实验进行工程化复刻，覆盖 SO-101 leader 遥操作 Piper、ACT 示教数据采集与训练、双 ACT 长程任务组合、OpenVLA-LIBERO 仿真评测，以及 SmolVLA 基于 Piper 真机数据的微调和同步/异步部署。
 
@@ -10,9 +10,20 @@ GitHub Actions 有意运行在无机器人、无 CAN、无摄像头、无 GPU �
 
 > This repository is an engineering reconstruction of completed SO-101/Piper robot experiments. Its run parameters were recorded from actual experiments, while GitHub Actions intentionally validates software reproducibility without physical hardware. The current refactored revision still requires an end-to-end replay on the target robot environment.
 
-仓库提供参数化命令封装、原创双技能状态机、安全过滤、脱敏工具、测试和文档，不重新分发 LeRobot、ACT、OpenVLA、SmolVLA、LIBERO、Piper SDK 源码，也不包含私有手册、数据集、模型权重、原始日志或设备标识。
+仓库提供参数化命令封装、双技能状态机、安全过滤、部署分级、故障分析、脱敏工具、测试和文档，不重新分发 LeRobot、ACT、OpenVLA、SmolVLA、LIBERO、Piper SDK 源码，也不包含私有手册、数据集、模型权重、原始日志或设备标识。
 
-## 已完成能力
+## 工程定位
+
+本项目突出 Robot Learning Deployment，而不包装算法创新：
+
+- **Dataset Pipeline**：遥操作、机器人状态、双相机、任务文本、LeRobot 数据集、训练输入和证据记录形成可追踪闭环。
+- **Inference Runtime**：同步 ACT/SmolVLA、双 ACT 状态机、异步 Policy Server—SSH—Robot Client 和统一动作发送边界。
+- **Robot Deployment**：从无硬件 CI 到设备发现、连接验证、低速 rollout 和完整 replay 的分级部署。
+- **Failure Analysis**：按环境、设备、数据、训练、checkpoint、运行时、通信和安全出口定位故障。
+
+仓库没有自研 ACT/OpenVLA/SmolVLA，也没有修改 Transformer、视觉骨干、loss 或训练算法。OpenVLA 仅用于 LIBERO 仿真评测，不声称部署到 Piper 真机。
+
+## 工程能力
 
 - SO-101 leader 串口输入、Piper SocketCAN `can0`（1 Mbps）执行和 front/wrist 双相机观测。
 - `lerobot-record` 数据采集、云端 ACT/SmolVLA 训练、检查点回传和 Piper 本地 rollout。
@@ -27,22 +38,76 @@ GitHub Actions 有意运行在无机器人、无 CAN、无摄像头、无 GPU �
 
 ```mermaid
 flowchart LR
-    L[SO-101 Leader] -->|Serial| PC[Ubuntu Robot PC]
-    PC -->|SocketCAN can0 / 1 Mbps| P[Piper Robot]
-    F[Front Camera] --> PC
-    W[Wrist Camera] --> PC
+    L[SO-101 Leader] -->|Serial| T[Teleoperation]
+    T --> DC[Dataset Collection]
+    F[Front USB Camera] --> DC
+    W[Wrist USB Camera] --> DC
+    P[Piper State] --> DC
 
-    PC --> D[LeRobot Dataset]
-    D --> A[Cloud GPU Training]
-    A --> C[ACT / SmolVLA Checkpoint]
-
-    C --> SR[Local Synchronous Rollout]
-    C --> PS[Cloud Policy Server]
-    PS -->|SSH Tunnel| RC[Local Robot Client]
-    RC --> P
+    DC --> D[LeRobot Dataset]
+    D --> TR[ACT / SmolVLA Training]
+    TR --> C[Checkpoint + Processors]
+    C --> IR[Inference Runtime]
+    F --> IR
+    W --> IR
+    P -. observation .-> IR
+    IR --> AF[Action Filter + Execution Gate]
+    AF --> RI[Robot Interface]
+    RI -->|SocketCAN can0 / 1 Mbps| CAN[Piper CAN]
+    CAN --> RE[Piper Robot Execution]
+    RE --> E[Sanitized Logs / Episodes]
+    E -. next data iteration .-> DC
 ```
 
-`src/robot_learning/` 是本仓库原创的配置、安全与双 ACT 编排层；`scripts/` 只组装上游 CLI，并默认预览而不执行真机动作。硬件拓扑和软件边界见 [architecture](docs/architecture.md) 与 [hardware topology](docs/hardware_topology.md)。
+这条主链明确展示完整学习闭环：**SO-101 Leader → Teleoperation → Dataset Collection → ACT/SmolVLA Training → Checkpoint → Inference Runtime → Robot Interface → Piper CAN → Robot Execution → 新一轮数据与证据**。OpenVLA-LIBERO 是旁路仿真评测，不进入 Piper 真机执行链。
+
+| 层级 | 本仓库中的落点 | 可审查边界 |
+| --- | --- | --- |
+| 示教与数据 | `record_piper_act.sh`、LeRobot dataset、front/wrist 观测 | 设备路径、任务、FPS、观测键和动作维度保持一致 |
+| 训练与模型 | ACT/SmolVLA wrappers、checkpoint 目录、对应 processors | 调用上游训练与加载能力，不修改模型架构或算法 |
+| 推理与编排 | 同步 rollout、双 ACT 状态机、异步 Policy Server/Robot Client | 两技能分别加载；`WAIT_CONFIRM` 阻断自动长程串联 |
+| 动作与硬件 | `ActionFilter`、执行双门控、Piper adapter、SocketCAN | 候选动作先过滤；只有显式授权才能到达 CAN 发送出口 |
+| 证据与迭代 | 脱敏日志、结果模板、dataset feedback | 无证据不发布指标；CI/Mock 不记作真机 replay |
+
+`src/robot_learning/` 是本仓库原创的配置、安全与双 ACT 编排层；`scripts/` 只组装上游 CLI，并默认预览而不执行真机动作。硬件拓扑、接口和软件边界见 [architecture](docs/architecture.md)、[hardware topology](docs/hardware_topology.md) 与 [hardware interfaces](docs/hardware_interfaces.md)。
+
+## 工程文档导航
+
+| 文档 | 解决的问题 |
+| --- | --- |
+| [Dataset Pipeline](docs/dataset_pipeline.md) | 数据如何从遥操作与观测进入训练，并回到部署证据闭环 |
+| [Inference Runtime](docs/inference_runtime.md) | 同步、双 ACT、异步和仿真运行时如何划分 |
+| [Robot Deployment](docs/robot_deployment.md) | 如何按 Level 0–6 将软件安全地接入目标硬件 |
+| [Failure Analysis](docs/failure_analysis.md) | 如何按层定位数据、checkpoint、通信和运行时故障 |
+| [Hardware Interfaces](docs/hardware_interfaces.md) | SO-101、USB 相机、Robot PC、Policy Runtime 与 Piper CAN 如何连接 |
+| [Dual ACT Design](docs/dual_act_design.md) | 两 checkpoint、两套 processors、状态机与人工交接如何隔离失败传播 |
+| [Deployment Checklist](docs/deployment_checklist.md) | 部署前、部署中、部署后的逐项验收与回滚检查 |
+| [Reproduction Status](docs/reproduction_status.md) | 历史源实验与当前 revision 验证状态如何区分 |
+| [Safety](docs/safety.md) | 动作门控、监督要求和物理安全边界 |
+
+## Reproducibility
+
+```text
+Reproducibility
+├── Dataset Pipeline       docs/dataset_pipeline.md
+├── Deployment Checklist  docs/deployment_checklist.md
+├── Results Templates      results/README.md
+└── Environment Check      scripts/environment_check.py
+```
+
+- [Dataset Pipeline](docs/dataset_pipeline.md) 固化示教、观测、数据集、训练输入和证据回流关系。
+- [Deployment Checklist](docs/deployment_checklist.md) 给出部署前、中、后的分级检查与回滚边界。
+- [Results Templates](results/README.md) 为 ACT rollout、双 ACT、部署和排障提供统一的可审查记录格式。
+- [Environment Check](scripts/environment_check.py) 只读检查软件依赖与部署前置项，不连接机器人或发送动作。
+
+```bash
+bash scripts/setup_robot_software.sh
+bash scripts/setup_robot_software.sh --execute
+python scripts/environment_check.py --profile software --strict
+python scripts/environment_check.py --profile deployment --json
+```
+
+软件安装脚本默认只预览；`--execute` 才在 Ubuntu/Linux 创建 `.venv`、安装 [pinned Robot PC runtime](requirements/robot-runtime.txt) 和本仓库。`--profile software` 检查 Python、distribution 与 YAML 语义；`--profile deployment` 额外读取本地 `.env` 并检查 checkpoint、Camera、CAN 的存在性。`--strict` 只要求所选范围内的自动化检查完成，不证明 checkpoint/processors 兼容、Camera 角色/画面、CAN bitrate/流量或真机任务成功。部署证据在完成这些人工检查和实际记录前始终是 `NOT_VERIFIED`。
 
 ## ACT 主流程
 
@@ -57,7 +122,7 @@ flowchart LR
 
 ## 双 ACT 长程任务
 
-两个 `SkillRuntime` 分别保存 policy、preprocess、postprocess、checkpoint 和任务文本。每轮开始重置两个策略；技能 A 完成后只进入人工确认态，确认后再次调用技能 B 的 `reset()`。代码不访问 `_action_queue` 等上游私有变量。
+两个 `SkillRuntime` 分别保存 policy、preprocess、postprocess、checkpoint 和任务文本。每轮开始重置两个策略；技能 A 完成后只进入人工确认态，确认后再次调用技能 B 的 `reset()`。代码不访问 `_action_queue` 等上游私有变量。设计动机、组件与权衡见 [dual ACT design](docs/dual_act_design.md)，运行细节见 [dual ACT long horizon](docs/dual_act_long_horizon.md)。
 
 动作在唯一发送出口前检查维度、NaN/Inf、关节/夹爪绝对范围和单步变化；第一次非法动作立即进入 `ABORTED`，不会被忽略或累计。默认 `EXECUTE_ROBOT = False`，并提供 `MockRobot` 测试。详见 [dual ACT long horizon](docs/dual_act_long_horizon.md)。
 
@@ -97,17 +162,18 @@ python scripts/run_dual_act.py \
 ```bash
 git clone https://github.com/JKyao-333/lerobot-so101-piper-vla.git
 cd lerobot-so101-piper-vla
-python -m venv .venv
+bash scripts/setup_robot_software.sh
+bash scripts/setup_robot_software.sh --execute
 source .venv/bin/activate
-python -m pip install -e '.[dev]'
 make validate
 make workflow-dry-run
 cp .env.example .env
+python scripts/environment_check.py --profile software --strict
 ```
 
 随后按顺序完成：
 
-1. 安装 [upstream versions](docs/upstream_versions.md) 指定的对应依赖。
+1. 检查 [runtime source pins](requirements/README.md) 和 [upstream versions](docs/upstream_versions.md)，执行软件安装脚本并保存实际解析版本。
 2. 运行 `python scripts/validate_experiment_baseline.py --json`。
 3. 在本地 `.env` 中替换设备端口、CAN、相机、任务、数据集、checkpoint、网络、云端目录和 GPU 参数。
 4. 接入 SO-101、Piper、SocketCAN、front/wrist 相机及物理停止装置。
