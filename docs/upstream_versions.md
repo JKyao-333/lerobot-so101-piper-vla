@@ -10,3 +10,5 @@
 | Piper SDK | required by the Piper adapter, but no exact revision supplied | external SDK under its own license |
 
 The supplied LeRobot working tree contained an unrelated local modification. The commit above identifies its checked-out base; this repository does not copy or publish that modification.
+
+The two verified source commits are encoded in [`requirements/robot-runtime.txt`](../requirements/robot-runtime.txt). The Piper SDK remains an adapter dependency without an evidence-backed exact revision; record the version resolved on the Robot PC rather than inventing a pin. OpenVLA/LIBERO are excluded from the hardware-runtime bootstrap because the supplied material did not establish source revisions for them.

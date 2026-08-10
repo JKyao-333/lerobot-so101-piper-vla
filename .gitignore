@@ -43,3 +43,5 @@ runs/
 *.p12
 *.token
 
+# Local task handoff reports contain transient branch and worktree state.
+PROJECT_UPDATE_FEEDBACK_*.md

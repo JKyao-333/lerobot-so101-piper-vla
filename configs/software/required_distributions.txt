@@ -1,0 +1,6 @@
+# Distribution names checked on the Robot PC. Keep this list free of versions;
+# source pins live in requirements/robot-runtime.txt.
+PyYAML
+lerobot
+lerobot_robot_piper
+piper_sdk

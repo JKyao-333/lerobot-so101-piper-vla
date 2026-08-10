@@ -1,6 +1,6 @@
 # Hardware onboarding
 
-The software layout, configuration templates, workflow previews, MockRobot checks, and safety gates are prepared. A reproducer must install the pinned dependencies, replace host-specific values, connect the required hardware, and validate each level under direct supervision.
+The software layout, pinned Robot PC bootstrap, configuration templates, workflow previews, MockRobot checks, and safety gates are prepared. A reproducer runs `bash scripts/setup_robot_software.sh --execute`, replaces host-specific values, connects the required hardware, and validates each level under direct supervision.
 
 ## Required hardware
 
@@ -30,7 +30,7 @@ Also verify `/dev/video*` paths, dataset repository ids, all AutoDL/cloud paths,
 
 ## Staged validation
 
-1. **Level 0 — CI/configuration:** install development dependencies and run `make validate`.
+1. **Level 0 — software/configuration:** preview and execute `scripts/setup_robot_software.sh`, run `python scripts/environment_check.py --profile software --strict`, then run `make validate`.
 2. **Level 1 — workflow preview:** run `make workflow-dry-run`; confirm every command is a preview.
 3. **Level 2 — device discovery:** run `scripts/check_robot_environment.sh` and inspect serial, video, and network devices without action execution.
 4. **Level 3 — CAN/cameras:** verify camera roles and connectivity; preview `scripts/setup_can.sh`, then configure CAN only under local operator control.
@@ -39,3 +39,5 @@ Also verify `/dev/video*` paths, dataset repository ids, all AutoDL/cloud paths,
 7. **Level 6 — full replay:** repeat recording, training/evaluation, checkpoint transfer, and rollout as a new current-commit result record.
 
 Do not skip levels. Hardware execution is an explicit local action and dual ACT additionally requires both `allow_robot_execution=true` and `--execute-robot`.
+
+Before Level 4, run `python scripts/environment_check.py --profile deployment --strict`. A pass means the automated software and resource-presence checks completed; it does not validate checkpoint/processors compatibility, camera roles or imagery, CAN bitrate/traffic, collision safety, or task success. Record those manual checks separately in the deployment template.

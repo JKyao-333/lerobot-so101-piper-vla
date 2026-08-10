@@ -5,7 +5,7 @@ repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 python_cmd="${PYTHON:-python}"
 
-# Load the version-controlled manual-example profile without writing a local .env.
+# Load the version-controlled experiment baseline without writing a local .env.
 set -a
 # shellcheck disable=SC1091
 source .env.example
@@ -16,6 +16,7 @@ set +a
 export OPENVLA_ROOT="${OPENVLA_ROOT:-/opt/example/openvla}"
 export LIBERO_ROOT="${LIBERO_ROOT:-/opt/example/libero}"
 
+bash scripts/setup_robot_software.sh
 bash scripts/setup_can.sh
 bash scripts/record_piper_act.sh
 bash scripts/train_act_autodl.sh

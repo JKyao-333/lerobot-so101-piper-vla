@@ -1,0 +1,4 @@
+# Evidence-pinned source revisions used by the completed project workflow.
+# The Piper adapter installs python-can and piper_sdk as upstream dependencies.
+lerobot @ git+https://github.com/huggingface/lerobot.git@e40b58a8dfa9e7b86918c374791599d070518d11
+lerobot_robot_piper @ git+https://github.com/AgRoboticsResearch/lerobot_robot_piper.git@abf721d9e88ac822b18cb3413a75bb8cc0e3b34f
