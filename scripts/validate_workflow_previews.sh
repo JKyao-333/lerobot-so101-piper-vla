@@ -18,10 +18,13 @@ export LIBERO_ROOT="${LIBERO_ROOT:-/opt/example/libero}"
 
 bash scripts/setup_robot_software.sh
 bash scripts/setup_can.sh
+bash scripts/teleoperate_so101.sh
+bash scripts/record_so101_act.sh
 bash scripts/record_piper_act.sh
 bash scripts/train_act_autodl.sh
 bash scripts/download_act_checkpoint.sh
 bash scripts/rollout_act_local.sh
+bash scripts/rollout_so101_act_local.sh
 bash scripts/eval_openvla_libero.sh \
   --suite spatial \
   --checkpoint openvla/openvla-7b-finetuned-libero-spatial \

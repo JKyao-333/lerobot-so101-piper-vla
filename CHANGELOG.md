@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add bilingual project presentation, contribution/evidence/provenance guides, and a public-safe nine-manual archive.
+- Add standalone SO-101 setup, teleoperation, ACT recording and rollout wrappers with explicit robot execution gates.
+- Add the DROID selective downloader, sanitized 10-episode structural manifest, and publication-asset hash validation.
+- Align the pinned LeRobot runtime, package metadata, bootstrap and environment checker on Python 3.12.
+
 - Reframe the repository around robot-learning data pipelines, inference runtime, staged deployment, and failure analysis.
 - Add Dataset Pipeline, Inference Runtime, Robot Deployment, and Failure Analysis guides.
 - Add Hardware Interfaces, Dual ACT Design, and Deployment Checklist guides.

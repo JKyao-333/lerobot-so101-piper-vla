@@ -21,6 +21,7 @@ validate_experiment_baseline(load_yaml("configs/reference/measured_experiment_ba
 print("configuration templates: valid")
 PY
 "$python_cmd" scripts/validate_experiment_baseline.py
+"$python_cmd" scripts/validate_publication_assets.py
 "$python_cmd" scripts/environment_check.py --json
 PYTHON="$python_cmd" bash scripts/validate_workflow_previews.sh
 "$python_cmd" -m pytest -q

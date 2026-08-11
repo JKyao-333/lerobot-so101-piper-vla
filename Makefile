@@ -1,4 +1,4 @@
-.PHONY: install-dev test lint validate workflow-dry-run software-setup-preview experiment-baseline environment-check check-secrets check-large-files
+.PHONY: install-dev test lint validate workflow-dry-run software-setup-preview experiment-baseline publication-assets environment-check check-secrets check-large-files
 
 PYTHON ?= python
 
@@ -23,6 +23,9 @@ software-setup-preview:
 
 experiment-baseline:
 	$(PYTHON) scripts/validate_experiment_baseline.py --json
+
+publication-assets:
+	$(PYTHON) scripts/validate_publication_assets.py --json
 
 environment-check:
 	$(PYTHON) scripts/environment_check.py
