@@ -11,7 +11,7 @@ import socket
 import stat
 import sys
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
@@ -32,7 +32,7 @@ REQUIRED_ENV_KEYS = (
 )
 
 
-class CheckStatus(str, Enum):
+class CheckStatus(StrEnum):
     PASS = "PASS"
     PRESENT = "PRESENT"
     MISSING = "MISSING"
@@ -60,11 +60,11 @@ class CheckResult:
 
 
 def check_python() -> CheckResult:
-    supported = sys.version_info >= (3, 10)
+    supported = sys.version_info >= (3, 12)
     detected = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     return CheckResult(
         category="python",
-        name="python>=3.10",
+        name="python>=3.12",
         status=CheckStatus.PASS if supported else CheckStatus.FAIL,
         detail=f"detected {detected}",
     )
@@ -270,9 +270,7 @@ def resolve_local_path(raw_path: str) -> Path | None:
 def check_checkpoint(label: str, raw_path: str) -> CheckResult:
     resolved = resolve_local_path(raw_path)
     if resolved is None:
-        return CheckResult(
-            "checkpoint", label, CheckStatus.FAIL, "path has unresolved variables"
-        )
+        return CheckResult("checkpoint", label, CheckStatus.FAIL, "path has unresolved variables")
     try:
         non_empty = resolved.is_dir() and next(resolved.iterdir(), None) is not None
     except OSError:
@@ -300,9 +298,7 @@ def camera_path(value: Any) -> Path | None:
 def check_camera(label: str, value: Any) -> CheckResult:
     path = camera_path(value)
     if path is None:
-        return CheckResult(
-            "camera", label, CheckStatus.FAIL, "camera identifier is not configured"
-        )
+        return CheckResult("camera", label, CheckStatus.FAIL, "camera identifier is not configured")
     if os.name == "nt":
         return CheckResult(
             "camera",
@@ -464,8 +460,7 @@ def run_checks(args: argparse.Namespace) -> dict[str, Any]:
                 (key, config[key]) for key in ("front_camera", "wrist_camera") if key in config
             )
         configured_cameras.extend(
-            (f"cli_camera_{index}", value)
-            for index, value in enumerate(args.camera, start=1)
+            (f"cli_camera_{index}", value) for index, value in enumerate(args.camera, start=1)
         )
         if configured_cameras:
             results.extend(check_camera(label, value) for label, value in configured_cameras)
@@ -505,8 +500,7 @@ def print_human(report: dict[str, Any]) -> None:
     print(f"Piper prerequisite check (read-only, profile={report['profile']})")
     for result in report["checks"]:
         print(
-            f"{result['status']:<12} {result['category']:<10} "
-            f"{result['name']}: {result['detail']}"
+            f"{result['status']:<12} {result['category']:<10} {result['name']}: {result['detail']}"
         )
     summary = report["summary"]
     print(f"overall={report['overall_status']} incomplete={summary['incomplete']}")

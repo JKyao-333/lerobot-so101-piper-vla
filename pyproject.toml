@@ -7,7 +7,7 @@ name = "robot-learning-workflows"
 version = "0.1.0"
 description = "Safety-first wrappers for SO-101/Piper ACT and VLA workflows"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = {file = "LICENSE"}
 authors = [{name = "JKyao-333"}]
 dependencies = ["PyYAML>=6.0,<7"]
@@ -25,7 +25,7 @@ pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

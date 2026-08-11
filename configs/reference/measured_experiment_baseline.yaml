@@ -21,12 +21,16 @@ provenance:
     steps require the target robot environment and have not yet been replayed
     end-to-end on this commit.
   sources:
+    - LeRobot_SO101_从零搭建与遥操作实验手册.pdf
+    - SO101_ACT实验手册.pdf
     - SO101_Piper_ACT实验手册.pdf
     - Piper双ACT长程任务实践手册.pdf
     - ACT长程任务实践说明.pdf
     - OpenVLA_LIBERO_可视化评测实验手册.pdf
     - SmolVLA教学手册.pdf
     - SmolVLA_LIBERO训练提升选做手册.pdf
+    - DROID数据集可视化实验手册.pdf
+    - build_raw_subset.py
     - dual_act_piper_rollout.py
 
 value_scope:
@@ -73,6 +77,39 @@ act:
     duration_s: 20
     episodes: 1
 
+so101_act:
+  recording:
+    follower_port: /dev/ttyACM1
+    follower_id: so101_follower_01
+    leader_port: /dev/ttyACM0
+    leader_id: so101_leader_01
+    dataset_repo_id: local/so101_banana_plate
+    dataset_root: $HOME/lerobot_work/data/so101_banana_plate
+    num_episodes: 50
+    episode_time_s: 30
+    reset_time_s: 15
+    dataset_fps: 30
+    encoder_threads: 2
+  training:
+    reference_checkpoint_step: 20000
+  rollout:
+    local_checkpoint: $HOME/lerobot_work/models/so101_banana_plate_020000/pretrained_model
+    duration_s: 20
+
+droid_subset:
+  evidence_class: upstream_public_dataset
+  user_work: user_executed_dataset_engineering
+  local_review: locally_inspected
+  upstream_release: 1.0.1
+  sample_episodes: 10
+  success_episodes: 4
+  failure_episodes: 6
+  trajectory_timesteps: 3852
+  hdf5_files: 10
+  mp4_files: 30
+  datasets_per_hdf5: 73
+  seed: 239
+  identity_metadata_publication: omitted
 dual_act:
   allow_robot_execution: false
   allow_shared_checkpoint: false

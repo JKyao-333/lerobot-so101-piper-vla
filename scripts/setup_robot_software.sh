@@ -22,8 +22,8 @@ if [[ "$execute" == "true" ]]; then
   require_cmd git
   "$python_bin" - <<'PY'
 import sys
-if sys.version_info < (3, 10):
-    raise SystemExit("Python 3.10 or newer is required")
+if sys.version_info < (3, 12):
+    raise SystemExit("Python 3.12 or newer is required by the pinned LeRobot runtime")
 PY
 fi
 
