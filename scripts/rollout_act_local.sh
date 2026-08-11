@@ -6,8 +6,8 @@ execute=false
 [[ "${1:-}" == "--execute-robot" ]] && execute=true && shift
 (($# == 0)) || die "usage: $0 [--execute-robot]"
 for name in CHECKPOINT_PATH TASK_TEXT; do require_env "$name"; done
-require_cmd lerobot-rollout
-[[ -d "$CHECKPOINT_PATH" ]] || die "checkpoint directory not found"
+require_cmd_for_execute "$execute" lerobot-rollout
+require_dir_for_execute "$execute" "$CHECKPOINT_PATH" checkpoint
 
 printf '%s\n' \
   'SAFETY CHECK: physical emergency stop is reachable.' \

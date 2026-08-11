@@ -1,4 +1,4 @@
-.PHONY: install-dev test lint validate check-secrets check-large-files
+.PHONY: install-dev test lint validate workflow-dry-run software-setup-preview experiment-baseline publication-assets environment-check check-secrets check-large-files
 
 PYTHON ?= python
 
@@ -15,9 +15,23 @@ lint:
 validate:
 	bash scripts/validate_repository.sh
 
+workflow-dry-run:
+	bash scripts/validate_workflow_previews.sh
+
+software-setup-preview:
+	bash scripts/setup_robot_software.sh
+
+experiment-baseline:
+	$(PYTHON) scripts/validate_experiment_baseline.py --json
+
+publication-assets:
+	$(PYTHON) scripts/validate_publication_assets.py --json
+
+environment-check:
+	$(PYTHON) scripts/environment_check.py
+
 check-secrets:
 	$(PYTHON) scripts/sanitize_logs.py --check-repository .
 
 check-large-files:
 	$(PYTHON) scripts/check_repository_files.py --root . --max-mb 20
-

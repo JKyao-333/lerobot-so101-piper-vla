@@ -40,20 +40,12 @@ class ActionFilter:
     Clipping cannot detect collisions, stalls, people, or unsafe scene geometry.
     """
 
-    def __init__(self, limits: ActionLimits, max_consecutive_errors: int = 1) -> None:
-        if max_consecutive_errors < 1:
-            raise ValueError("max_consecutive_errors must be at least one")
+    def __init__(self, limits: ActionLimits) -> None:
         self.limits = limits
-        self.max_consecutive_errors = max_consecutive_errors
-        self.consecutive_errors = 0
 
-    def _reject(self, message: str) -> None:
-        self.consecutive_errors += 1
+    @staticmethod
+    def _reject(message: str) -> None:
         raise UnsafeActionError(message)
-
-    @property
-    def tripped(self) -> bool:
-        return self.consecutive_errors >= self.max_consecutive_errors
 
     def apply(
         self, action: Iterable[float], previous_action: Sequence[float] | None = None
@@ -92,5 +84,4 @@ class ActionFilter:
                 )
             bounded.append(value)
 
-        self.consecutive_errors = 0
         return tuple(bounded)

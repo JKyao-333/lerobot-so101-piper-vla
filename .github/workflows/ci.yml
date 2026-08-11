@@ -11,10 +11,10 @@ jobs:
   lint-and-test:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -26,17 +26,25 @@ jobs:
       - run: |
           python - <<'PY'
           from pathlib import Path
-          from robot_learning.config import load_yaml, validate_dual_act_config
+          from robot_learning.config import (
+              load_yaml,
+              validate_dual_act_config,
+              validate_experiment_baseline,
+          )
           for path in Path("configs").rglob("*.yaml"):
               load_yaml(path)
           validate_dual_act_config(load_yaml("configs/dual_act/dual_act.example.yaml"))
+          validate_experiment_baseline(
+              load_yaml("configs/reference/measured_experiment_baseline.yaml")
+          )
           PY
+      - run: python scripts/validate_experiment_baseline.py --json
 
   repository-safety-check:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: python -m pip install -e .
@@ -44,3 +52,13 @@ jobs:
       - run: python scripts/check_repository_files.py --root . --max-mb 20
       - run: git diff --check
 
+  workflow-dry-run:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e .
+      - run: bash scripts/validate_workflow_previews.sh

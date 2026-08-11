@@ -1,0 +1,30 @@
+schema_version: 1
+source:
+  dataset: DROID
+  release: 1.0.1
+  location: gs://gresearch/robotics/droid_raw/1.0.1
+  evidence_class: upstream_public_dataset
+user_work:
+  classification: user_executed_dataset_engineering
+  activities: [selective_download, resumable_transfer, storage_guard, hdf5_inspection, video_inspection]
+  local_review: locally_inspected
+selection:
+  seed: 239
+  requested_statuses: [success, failure]
+  downloaded_episodes: 10
+  success_episodes: 4
+  failure_episodes: 6
+observed_sample:
+  trajectory_h5_files: 10
+  mp4_files: 30
+  total_timesteps: 3852
+  episode_lengths: [312, 229, 482, 228, 238, 316, 458, 489, 555, 545]
+  datasets_per_hdf5: 73
+  video_codec: h264
+  video_resolution: 1280x720
+  video_fps: 60
+  video_duration_range_s: [3.783333, 9.233333]
+privacy:
+  raw_data_published: false
+  excluded_fields: [building, robot_serial, scene_id, user, user_id, uuid]
+claims_not_made: [dataset_ownership, droid_data_collection, model_training, task_success_rate]

@@ -24,21 +24,21 @@ esac
 [[ "$center_crop" == "true" || "$center_crop" == "false" ]] || die "--center-crop must be true or false"
 require_env OPENVLA_ROOT
 require_env LIBERO_ROOT
-[[ -d "$OPENVLA_ROOT" ]] || die "OPENVLA_ROOT is not a directory"
-[[ -d "$LIBERO_ROOT" ]] || die "LIBERO_ROOT is not a directory"
-[[ -e "$checkpoint" ]] || die "checkpoint does not exist"
-require_cmd python
-
-if [[ "${MUJOCO_GL:-}" != "egl" && -z "${DISPLAY:-}" ]]; then
-  die "headless evaluation requires MUJOCO_GL=egl"
+if [[ "$execute" == "true" ]]; then
+  [[ -d "$OPENVLA_ROOT" ]] || die "OPENVLA_ROOT is not a directory"
+  [[ -d "$LIBERO_ROOT" ]] || die "LIBERO_ROOT is not a directory"
+  if [[ ! -e "$checkpoint" && ! "$checkpoint" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+    die "checkpoint must be a local path or Hugging Face repository id"
+  fi
+  require_cmd python
+  if [[ "${MUJOCO_GL:-}" != "egl" && -z "${DISPLAY:-}" ]]; then
+    die "headless evaluation requires MUJOCO_GL=egl"
+  fi
+  python -c 'import libero, mujoco' >/dev/null || die "LIBERO or MuJoCo cannot be imported"
 fi
-python -c 'import libero, mujoco' >/dev/null || die "LIBERO or MuJoCo cannot be imported"
 
-attention_backend="${ATTENTION_BACKEND:-sdpa}"
-printf 'attention backend: %s (FlashAttention is optional; fallback is logged)\n' "$attention_backend"
 run_dir="${output_dir%/}/${suite}_$(date +%Y%m%d_%H%M%S)"
 log_file="$run_dir/evaluation.log"
-video_index="$run_dir/rollout_videos.txt"
 cmd=(python "$OPENVLA_ROOT/experiments/robot/libero/run_libero_eval.py"
   --model_family openvla --pretrained_checkpoint "$checkpoint"
   --task_suite_name "$task_suite" --center_crop "$center_crop")
@@ -46,13 +46,12 @@ print_command "${cmd[@]}"
 if [[ "$execute" == "true" ]]; then
   mkdir -p "$run_dir"
   {
-    printf 'suite=%s\nattention_backend=%s\n' "$task_suite" "$attention_backend"
+    printf 'suite=%s\nwrapper_working_directory=%s\n' "$task_suite" "$(pwd)"
     "${cmd[@]}"
   } 2>&1 | tee "$log_file"
-  find "$run_dir" -type f \( -name '*.mp4' -o -name '*.avi' \) -print >"$video_index"
-  printf 'raw log: %s\nvideo index: %s\n' "$log_file" "$video_index"
+  printf 'wrapper console log: %s\n' "$log_file"
+  printf 'Upstream artifact locations depend on the installed OpenVLA revision.\n'
   printf 'Do not publish a success rate until this log has been reviewed and sanitized.\n'
 else
-  printf 'dry-run: no simulation was started and no metric was generated.\n'
+  printf 'dry-run: no simulation was started, no directory was created, and no metric was generated.\n'
 fi
-

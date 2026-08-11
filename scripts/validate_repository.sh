@@ -8,13 +8,22 @@ python_cmd="${PYTHON:-python}"
 while IFS= read -r -d '' script; do bash -n "$script"; done < <(find scripts -type f -name '*.sh' -print0)
 "$python_cmd" - <<'PY'
 from pathlib import Path
-from robot_learning.config import load_yaml, validate_dual_act_config
+from robot_learning.config import (
+    load_yaml,
+    validate_dual_act_config,
+    validate_experiment_baseline,
+)
 
 for path in Path("configs").rglob("*.yaml"):
     load_yaml(path)
 validate_dual_act_config(load_yaml("configs/dual_act/dual_act.example.yaml"))
+validate_experiment_baseline(load_yaml("configs/reference/measured_experiment_baseline.yaml"))
 print("configuration templates: valid")
 PY
+"$python_cmd" scripts/validate_experiment_baseline.py
+"$python_cmd" scripts/validate_publication_assets.py
+"$python_cmd" scripts/environment_check.py --json
+PYTHON="$python_cmd" bash scripts/validate_workflow_previews.sh
 "$python_cmd" -m pytest -q
 "$python_cmd" scripts/sanitize_logs.py --check-repository .
 "$python_cmd" scripts/check_repository_files.py --root . --max-mb 20

@@ -7,7 +7,7 @@ execute=false
 (($# == 0)) || die "usage: $0 [--execute] (configuration is supplied through environment variables)"
 
 for name in LEADER_PORT TASK_TEXT DATASET_REPO_ID DATASET_ROOT; do require_env "$name"; done
-require_cmd lerobot-record
+require_cmd_for_execute "$execute" lerobot-record
 
 can_interface="${CAN_INTERFACE:-can0}"
 bitrate="${CAN_BITRATE:-1000000}"
@@ -29,4 +29,3 @@ cmd=(lerobot-record
   --dataset.streaming_encoding=true --dataset.encoder_threads="${ENCODER_THREADS:-2}"
   --dataset.fps="$dataset_fps" --dataset.rgb_encoder.crf="${RGB_CRF:-20}")
 run_if_enabled "$execute" "${cmd[@]}"
-

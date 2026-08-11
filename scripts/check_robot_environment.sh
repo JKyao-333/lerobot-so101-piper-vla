@@ -43,12 +43,21 @@ fi
 df -h . | tail -n 1 | awk '{print "workspace disk: size=" $2 ", available=" $4 ", use=" $5}'
 
 printf '\n== upstream versions ==\n'
-python - <<'PY'
+package_manifest="$(cd "$(dirname "$0")/.." && pwd)/configs/software/required_distributions.txt"
+PACKAGE_MANIFEST="$package_manifest" python - <<'PY'
+import os
 from importlib.metadata import PackageNotFoundError, version
-for package in ("lerobot", "lerobot_robot_piper", "piper_sdk"):
+from pathlib import Path
+
+manifest = Path(os.environ["PACKAGE_MANIFEST"])
+packages = [
+    line.strip()
+    for line in manifest.read_text(encoding="utf-8").splitlines()
+    if line.strip() and not line.lstrip().startswith("#")
+]
+for package in packages:
     try:
         print(f"{package}: {version(package)}")
     except PackageNotFoundError:
         print(f"{package}: not installed")
 PY
-
