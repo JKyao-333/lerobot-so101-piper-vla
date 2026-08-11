@@ -1,6 +1,6 @@
 # Measured experiment baseline
 
-`configs/reference/measured_experiment_baseline.yaml` is the source of truth for run parameters recorded in the seven supplied experiment manuals and supplemental code. The user confirms that the underlying SO-101/Piper, ACT, dual-ACT, OpenVLA-LIBERO, and SmolVLA experiments were completed.
+`configs/reference/measured_experiment_baseline.yaml` is the source of truth for run parameters recorded in the nine published experiment manuals and supplemental code. The user confirms that the underlying SO-101, Piper, ACT, dual-ACT, OpenVLA-LIBERO, SmolVLA, and DROID data-engineering work were completed.
 
 This provenance has two deliberately separate layers:
 

@@ -2,7 +2,9 @@
 
 **Robot Data Pipeline, Policy Runtime, Dual-Skill Orchestration and Deployment Engineering**
 
-本仓库基于已经完成的 SO-101/Piper 真机实验进行工程化复刻，覆盖 SO-101 leader 遥操作 Piper、ACT 示教数据采集与训练、双 ACT 长程任务组合、OpenVLA-LIBERO 仿真评测，以及 SmolVLA 基于 Piper 真机数据的微调和同步/异步部署。
+[English README](README.en.md) · [个人贡献边界](docs/contribution_matrix.md) · [工程证据索引](docs/evidence_index.md) · [9 份原创手册](docs/manuals/README.md)
+
+本仓库基于作者已经完成的机器人实验进行工程化复刻，覆盖 SO-101 从零搭建与遥操作、独立 SO-101 ACT、SO-101 leader 遥操作 Piper、ACT 示教数据采集与训练、双 ACT 长程任务组合、OpenVLA-LIBERO 仿真评测、SmolVLA 基于 Piper 真机数据的微调和同步/异步部署，以及 DROID 公共数据集的受控抽样与结构检查。作者完成了硬件接入、Linux 环境、遥操作、数据采集、训练/评测/部署、故障处理和 9 份原创实验手册。
 
 episode 数量、采集频率、训练步数、checkpoint 选择、双 ACT 参数、OpenVLA 评测配置和 SmolVLA 同步/异步推理配置，均来自用户实际完成的实验记录与补充资料，不是为了展示而虚构的默认值。源实验已经完成硬件操作、训练、评测和 rollout；当前工程重构 revision 已通过离线、MockRobot 和 CI 验证，但尚未在用户硬件环境重新完成一次端到端回归。
 
@@ -10,7 +12,7 @@ GitHub Actions 有意运行在无机器人、无 CAN、无摄像头、无 GPU �
 
 > This repository is an engineering reconstruction of completed SO-101/Piper robot experiments. Its run parameters were recorded from actual experiments, while GitHub Actions intentionally validates software reproducibility without physical hardware. The current refactored revision still requires an end-to-end replay on the target robot environment.
 
-仓库提供参数化命令封装、双技能状态机、安全过滤、部署分级、故障分析、脱敏工具、测试和文档，不重新分发 LeRobot、ACT、OpenVLA、SmolVLA、LIBERO、Piper SDK 源码，也不包含私有手册、数据集、模型权重、原始日志或设备标识。
+仓库提供参数化命令封装、双技能状态机、安全过滤、部署分级、故障分析、脱敏工具、测试和文档，并公开作者原创且已完成隐私审查的 9 份实验手册。仓库不重新分发 LeRobot、ACT、OpenVLA、SmolVLA、LIBERO、Piper SDK 源码，也不包含原始数据集、模型权重、完整视频、私有日志或设备标识。
 
 ## 工程定位
 
@@ -25,11 +27,13 @@ GitHub Actions 有意运行在无机器人、无 CAN、无摄像头、无 GPU �
 
 ## 工程能力
 
-- SO-101 leader 串口输入、Piper SocketCAN `can0`（1 Mbps）执行和 front/wrist 双相机观测。
+- SO-101 follower/leader 的环境搭建、串口、校准、遥操作与 front/side 双相机 ACT 闭环。
+- SO-101 leader 串口输入、Piper SocketCAN can0（1 Mbps）执行和 front/wrist 双相机观测。
 - `lerobot-record` 数据采集、云端 ACT/SmolVLA 训练、检查点回传和 Piper 本地 rollout。
 - 两个独立 ACT 策略通过 `INIT → SKILL_A → WAIT_CONFIRM → SKILL_B → DONE` 组织，任意活动阶段可进入 `ABORTED`。
 - OpenVLA 在 LIBERO Spatial、Object、Goal、Long 四类 MuJoCo 套件上的统一评测入口。
 - SmolVLA Base 使用 Piper LeRobot 数据微调、本地同步 rollout，以及 Policy Server—SSH 隧道—Robot Client 异步链路。
+- DROID 公共数据的选择性下载、断点恢复、磁盘保护、HDF5 与多视角视频检查。
 - 无机器人、无 GPU 的配置、状态机、安全过滤、超时和日志脱敏测试。
 
 上述硬件、训练、评测和部署能力来自已完成的源实验；仓库中的对应参数标记为 `experiment_recorded`。当前 revision 的声明范围是配置一致性、命令预演、Mock 行为和 CI，而不是一次新的真机回归。资料未提供可随仓库公开核验的成功率、loss、延迟或耗时证据，因此不自行补写这些指标。完整区分见 [reproduction status](docs/reproduction_status.md) 和 [measured experiment baseline](docs/measured_experiment_baseline.md)。
@@ -75,6 +79,13 @@ flowchart LR
 
 | 文档 | 解决的问题 |
 | --- | --- |
+| [Project Story](docs/project_story.md) | 作者完成了什么，以及 Hardware → Linux → Data → Policy → Deployment 如何贯通 |
+| [Contribution Matrix](docs/contribution_matrix.md) | 个人工作、上游能力和公开证据如何区分 |
+| [Evidence Index](docs/evidence_index.md) | 每类证据能支持与不能支持哪些声明 |
+| [Original Manuals](docs/manuals/README.md) | 9 份原创实验手册、许可、哈希和发布审查 |
+| [SO-101 Setup](docs/so101_setup.md) | SO-101 环境、校准、遥操作和分级接入 |
+| [SO-101 ACT](docs/so101_act_pipeline.md) | 独立 SO-101 ACT 数据、训练和 rollout 链 |
+| [DROID Engineering](docs/droid_dataset_engineering.md) | 公共数据子集下载、检查与声明边界 |
 | [Dataset Pipeline](docs/dataset_pipeline.md) | 数据如何从遥操作与观测进入训练，并回到部署证据闭环 |
 | [Inference Runtime](docs/inference_runtime.md) | 同步、双 ACT、异步和仿真运行时如何划分 |
 | [Robot Deployment](docs/robot_deployment.md) | 如何按 Level 0–6 将软件安全地接入目标硬件 |
@@ -109,6 +120,13 @@ python scripts/environment_check.py --profile deployment --json
 
 软件安装脚本默认只预览；`--execute` 才在 Ubuntu/Linux 创建 `.venv`、安装 [pinned Robot PC runtime](requirements/robot-runtime.txt) 和本仓库。`--profile software` 检查 Python、distribution 与 YAML 语义；`--profile deployment` 额外读取本地 `.env` 并检查 checkpoint、Camera、CAN 的存在性。`--strict` 只要求所选范围内的自动化检查完成，不证明 checkpoint/processors 兼容、Camera 角色/画面、CAN bitrate/流量或真机任务成功。部署证据在完成这些人工检查和实际记录前始终是 `NOT_VERIFIED`。
 
+## SO-101 基础与独立 ACT
+
+SO-101 路线先完成 follower/leader 的端口识别、校准和遥操作，再以 front/side 双相机采集 50 条、30 FPS 的 ACT 示教数据，训练并回传 020000 checkpoint。`teleoperate_so101.sh`、`record_so101_act.sh` 和 `rollout_so101_act_local.sh` 均默认 dry-run，只有 `--execute-robot` 才调用真实机器人 CLI。详见 [SO-101 setup](docs/so101_setup.md) 与 [SO-101 ACT pipeline](docs/so101_act_pipeline.md)。
+
+## DROID 数据工程附录
+
+DROID 是上游公共数据集，不是作者自采数据。作者完成了受控抽样、可恢复下载、磁盘保护以及本地 HDF5/视频检查；公开仓库只保留下载器和脱敏结构摘要，不发布 raw episode。详见 [DROID dataset engineering](docs/droid_dataset_engineering.md)。
 ## ACT 主流程
 
 1. `scripts/check_robot_environment.sh` 只检查运行条件，不收集用户、网络、USB 序列号或凭据。
@@ -196,4 +214,4 @@ python scripts/environment_check.py --profile software --strict
 
 ## 上游项目与许可
 
-运行链路依赖 LeRobot、ACT、OpenVLA、LIBERO、SmolVLA、`lerobot_robot_piper` 和 Piper SDK；它们各自遵循自己的许可证。仓库中的 MIT License 只覆盖本仓库原创的编排、安全、配置、测试和脚本封装，不会重新许可任何上游源码。已核对版本与来源见 [upstream versions](docs/upstream_versions.md) 和 [references](docs/references.md)。
+运行链路依赖 LeRobot、ACT、OpenVLA、LIBERO、SmolVLA、`lerobot_robot_piper`、Piper SDK 和 DROID；它们各自遵循自己的许可证。MIT License 覆盖本仓库原创代码，作者原创手册及原创文档/图稿采用 CC BY 4.0；两者都不会重新许可上游材料。详见 [credits and provenance](docs/credits_and_provenance.md)、[upstream versions](docs/upstream_versions.md) 和 [references](docs/references.md)。

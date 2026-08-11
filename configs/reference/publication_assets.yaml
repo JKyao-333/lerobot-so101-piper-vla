@@ -1,0 +1,35 @@
+schema_version: 1
+license: CC-BY-4.0
+author: JKyao-333
+privacy_review:
+  status: reviewed
+  method: extracted-text scan plus manual review
+  boundary: Embedded images and layout were visually reviewed; example cloud endpoints remain clearly labeled as replaceable examples.
+manuals:
+  - path: docs/manuals/LeRobot_SO101_从零搭建与遥操作实验手册.pdf
+    sha256: c84aa92eb4084d5f7f59257483e48214bf78bd31fc00006ad0ab8516415d5fef
+    pages: 14
+  - path: docs/manuals/SO101_ACT实验手册.pdf
+    sha256: 42cebf0fc481b4fecb0f1df22c774cdc7f69ffd21a2aac9a1aa7ea485408532c
+    pages: 14
+  - path: docs/manuals/SO101_Piper_ACT实验手册.pdf
+    sha256: 86dc1b1a6fee43013f3aa561631d95bf5e16c7a315f187dd1637f9f9f6379895
+    pages: 10
+  - path: docs/manuals/ACT长程任务实践说明.pdf
+    sha256: 0a6dce2f98ef7e960b090af6070f921b496d5af2e4ac7359c702d4c946fc5f30
+    pages: 2
+  - path: docs/manuals/Piper双ACT长程任务实践手册.pdf
+    sha256: 71667323dcf58bc090f180fecc8174af98f755e35faf753fb7f59a4fced41549
+    pages: 19
+  - path: docs/manuals/OpenVLA_LIBERO_可视化评测实验手册.pdf
+    sha256: 0d457f0ba13692eaba5843e74d64b59cb4f3d3aa1fd9983ce4ecb3e6abf81697
+    pages: 7
+  - path: docs/manuals/SmolVLA教学手册.pdf
+    sha256: e2897d4931e6e1bd3bacf4d9b62242b0b4e4650167075bf1e94dff91a867dd0d
+    pages: 19
+  - path: docs/manuals/SmolVLA_LIBERO训练提升选做手册.pdf
+    sha256: 7535cf244dfaa8a6608e5e4406b5aea5525f3629aa6eea008e3d453893f33c68
+    pages: 9
+  - path: docs/manuals/DROID数据集可视化实验手册.pdf
+    sha256: e417d370fcfa78ebacb7d5c9bfc62fd1248606c156ab6bbee020ee3f4f6fb35b
+    pages: 5
